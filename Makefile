@@ -33,6 +33,11 @@ COMMA = ,
 SOPATHS = $(addprefix -Wl$(COMMA)-rpath$(COMMA), $(LIBS))
 SRCEXTS = .c .cc .cpp .proto
 
+# fmtlib support
+CXXFLAGS += -I/opt/homebrew/opt/fmt/include
+LIBPATHS += -L/opt/homebrew/opt/fmt/lib
+DYNAMIC_LINKINGS += -lfmt
+
 SOEXT = so
 ifeq ($(SYSTEM),Darwin)
     SOEXT = dylib

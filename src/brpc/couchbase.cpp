@@ -14,13 +14,12 @@ namespace brpc {
 
 // Global Couchbase objects
 static std::optional<couchbase::cluster> g_cluster;
-static std::optional<couchbase::collection> g_collection;
+static std::vector<couchbase::collection> g_collection;
 static bool g_initialized = false;
 
 bool InitCouchbase(const std::string& connection_string,
                    const std::string& username,
-                   const std::string& password,
-                   const std::string& bucket_name) {
+                   const std::string& password) {
     try {
         // Create cluster connection using Couchbase C++ SDK
         auto options = couchbase::cluster_options(username, password);
@@ -33,29 +32,59 @@ bool InitCouchbase(const std::string& connection_string,
         
         g_cluster = std::move(cluster);
         
-        // Get bucket and default collection
-        auto bucket = g_cluster->bucket(bucket_name);
-        g_collection = bucket.default_collection();
-        
+        //get all the buckets inside the cluster
+        auto [buckets_err, all_buckets] = g_cluster->buckets().get_all_buckets().get();
+        if (buckets_err) {
+            LOG(ERROR) << "Failed to get buckets: " << buckets_err.message();
+            return false;
+        }
+
+        g_collection.clear();
+        for(const auto& settings : all_buckets){
+            auto bucket = g_cluster->bucket(settings.name);
+            auto collection = bucket.default_collection();
+            g_collection.push_back(std::move(collection));
+        }
         g_initialized = true;
         return true;
-        
     } catch (const std::exception& ex) {
         LOG(ERROR) << "Failed to initialize Couchbase: " << ex.what();
         return false;
     }
 }
 
-std::string CouchbaseGet(const std::string& key) {
-    if (!g_initialized || !g_collection) {
+std::optional<couchbase::collection> GetCollectionForBucket(const std::string& bucket_name) {
+    auto it = std::find_if(
+        g_collection.begin(),
+        g_collection.end(),
+        [&bucket_name](const couchbase::collection& collection) {
+            return collection.bucket_name() == bucket_name;
+        });
+
+    if (it == g_collection.end()) {
+        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
+        return std::nullopt;
+    }
+
+    return *it; // copy of the collection handle
+}
+
+std::string CouchbaseGet(const std::string& key, const std::string& bucket_name) {
+    if (!g_initialized || g_collection.empty()) {
         LOG(ERROR) << "Couchbase not initialized";
         return "";
     }
-    
+
+    auto collection = GetCollectionForBucket(bucket_name);
+    if (!collection) {
+        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
+        return "";
+    }
+
     try {
         // Use Couchbase C++ SDK to get document
-        auto [err, result] = g_collection->get(key).get();
-        
+        auto [err, result] = collection->get(key).get();
+
         if (err) {
             LOG(ERROR) << "Get failed for key '" << key << "': " << err.message();
             return "";
@@ -72,18 +101,24 @@ std::string CouchbaseGet(const std::string& key) {
     }
 }
 
-bool CouchbaseUpsert(const std::string& key, const std::string& value) {
-    if (!g_initialized || !g_collection) {
+bool CouchbaseUpsert(const std::string& key, const std::string& value, const std::string& bucket_name) {
+    if (!g_initialized || g_collection.empty()) {
         LOG(ERROR) << "Couchbase not initialized";
         return false;
     }
-    
+
+    auto collection = GetCollectionForBucket(bucket_name);
+    if (!collection) {
+        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
+        return "";
+    }
+
     try {
         
         auto content = tao::json::from_string(value);
         
         // Use Couchbase C++ SDK to upsert document
-        auto [err, result] = g_collection->upsert(key, content).get();
+        auto [err, result] = collection->upsert(key, content).get();
 
         if (err) {
             LOG(ERROR) << "Upsert failed for key '" << key << "': " << err.message();
@@ -98,17 +133,23 @@ bool CouchbaseUpsert(const std::string& key, const std::string& value) {
     }
 }
 
-bool CouchbaseAdd(const std::string& key, const std::string& value) {
-    if (!g_initialized || !g_collection) {
+bool CouchbaseAdd(const std::string& key, const std::string& value, const std::string& bucket_name) {
+    if (!g_initialized || g_collection.empty()) {
         LOG(ERROR) << "Couchbase not initialized";
         return false;
     }
-    
+
+    auto collection = GetCollectionForBucket(bucket_name);
+    if (!collection) {
+        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
+        return "";
+    }
+
     try {
         auto content = tao::json::from_string(value);
         
         // Use Couchbase C++ SDK to insert document (add operation)
-        auto [err, result] = g_collection->insert(key, content).get();
+        auto [err, result] = collection->insert(key, content).get();
 
         if (err) {
             LOG(ERROR) << "Add failed for key '" << key << "': " << err.message();
@@ -123,16 +164,22 @@ bool CouchbaseAdd(const std::string& key, const std::string& value) {
     }
 }
 
-bool CouchbaseRemove(const std::string& key) {
-    if (!g_initialized || !g_collection) {
+bool CouchbaseRemove(const std::string& key, const std::string& bucket_name) {
+    if (!g_initialized || g_collection.empty()) {
         LOG(ERROR) << "Couchbase not initialized";
         return false;
     }
-    
+
+    auto collection = GetCollectionForBucket(bucket_name);
+    if (!collection) {
+        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
+        return "";
+    }
+
     try {
         // Use Couchbase C++ SDK to remove document
-        auto [err, result] = g_collection->remove(key).get();
-        
+        auto [err, result] = collection->remove(key).get();
+
         if (err) {
             LOG(ERROR) << "Remove failed for key '" << key << "': " << err.message();
             return false;
@@ -188,7 +235,6 @@ bool CouchbaseRemove(const std::string& key) {
 
 void CloseCouchbase() {
     if (g_initialized) {
-        g_collection.reset();
         g_cluster.reset();
         g_initialized = false;
     }

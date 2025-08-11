@@ -26,7 +26,7 @@ bool  CouchbaseObject::InitCouchbase(const std::string& connection_string,
         auto [connect_err, cluster] = couchbase::cluster::connect(connection_string, options).get();
         
         if (connect_err) {
-            cout << "Failed to connect to cluster: " << connect_err.message();
+            cerr << RED_TEXT << "Failed to connect to cluster: " << connect_err.message() << RESET_TEXT;
             return false;
         }
         
@@ -35,7 +35,7 @@ bool  CouchbaseObject::InitCouchbase(const std::string& connection_string,
         //get all the buckets inside the cluster
         auto [buckets_err, all_buckets] = g_cluster->buckets().get_all_buckets().get();
         if (buckets_err) {
-            cout << "Failed to get buckets: " << buckets_err.message();
+            cerr << RED_TEXT << "Failed to get buckets: " << buckets_err.message() << RESET_TEXT;
             return false;
         }
 

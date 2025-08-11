@@ -105,11 +105,15 @@ std::pair<bool, std::string> CouchbaseObject::CouchbaseGet(const std::string& ke
 }
 
 bool CouchbaseObject::CouchbaseUpsert(const std::string& key, const std::string& value, const std::string& bucket_name) {
-    if (!g_initialized || g_collection.empty()) {
+
+    if(!g_initialized) {
         cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
         return false;
     }
-
+    if(g_collection.empty()) {
+        cerr << RED_TEXT << "No collections available, make sure Couchbase is initialized and buckets are loaded." << RESET_TEXT;
+        return false;
+    }
     auto collection = GetCollectionForBucket(bucket_name);
     if (!collection) {
         cerr << RED_TEXT << "Collection not found for bucket: " << bucket_name << ", Make sure the bucket exists."<< RESET_TEXT;
@@ -139,8 +143,12 @@ bool CouchbaseObject::CouchbaseUpsert(const std::string& key, const std::string&
 }
 
 bool CouchbaseObject::CouchbaseAdd(const std::string& key, const std::string& value, const std::string& bucket_name) {
-    if (!g_initialized || g_collection.empty()) {
+    if(!g_initialized) {
         cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
+        return false;
+    }
+    if(g_collection.empty()) {
+        cerr << RED_TEXT << "No collections available, make sure Couchbase is initialized and buckets are loaded." << RESET_TEXT;
         return false;
     }
 
@@ -183,8 +191,12 @@ bool CouchbaseObject::CouchbaseAdd(const std::string& key, const std::string& va
 }
 
 bool CouchbaseObject::CouchbaseRemove(const std::string& key, const std::string& bucket_name) {
-    if (!g_initialized || g_collection.empty()) {
+    if(!g_initialized) {
         cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
+        return false;
+    }
+    if(g_collection.empty()) {
+        cerr << RED_TEXT << "No collections available, make sure Couchbase is initialized and buckets are loaded." << RESET_TEXT;
         return false;
     }
 

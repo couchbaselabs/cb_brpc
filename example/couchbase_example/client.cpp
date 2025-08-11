@@ -15,6 +15,9 @@ int main(int argc, char* argv[]) {
     // Parse command line flags
     GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
     
+    // Create CouchbaseObject instance
+    brpc::CouchbaseObject couchbase_client;
+    
     // Variables to store operation timings
     std::vector<std::pair<std::string, long long>> operation_times;
     
@@ -24,7 +27,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Initializing Couchbase connection..." << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
     std::string connection_string = "couchbase://" + FLAGS_couchbase_host;
-    if (!brpc::InitCouchbase(connection_string, FLAGS_username, FLAGS_password)) {
+    if (!couchbase_client.InitCouchbase(connection_string, FLAGS_username, FLAGS_password)) {
         std::cerr << "Failed to initialize Couchbase" << std::endl;
         return -1;
     }
@@ -37,7 +40,7 @@ int main(int argc, char* argv[]) {
     std::cout << "\nAdding user data (insert only)..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
     std::string user_data = R"({"name": "John Doe", "age": 30, "email": "john@example.com"})";
-    if (brpc::CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket)) {
+    if (couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket)) {
         end = std::chrono::high_resolution_clock::now();
         auto micro_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         std::cout << "User data added successfully in " << micro_duration.count() << " μs" << std::endl;
@@ -52,7 +55,7 @@ int main(int argc, char* argv[]) {
     // Example 2: Try to add the same document again (should fail)
     std::cout << "\nTrying to add the same user data again (should fail)..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
-    if (brpc::CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket)) {
+    if (couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket)) {
         end = std::chrono::high_resolution_clock::now();
         auto micro_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         std::cout << "User data added successfully (unexpected) - took " << micro_duration.count() << " μs" << std::endl;
@@ -60,7 +63,7 @@ int main(int argc, char* argv[]) {
     } else {
         end = std::chrono::high_resolution_clock::now();
         auto micro_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-        std::cout << "Add operation failed as expected - document already exists - took " << micro_duration.count() << " μs" << std::endl;
+        std::cout << "Add operation failed as expected - took " << micro_duration.count() << " μs" << std::endl;
         operation_times.push_back({"Add user data (second attempt - expected failure)", micro_duration.count()});
     }
     
@@ -68,7 +71,7 @@ int main(int argc, char* argv[]) {
     std::cout << "\nUpdating user data using Upsert..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
     std::string updated_user_data = R"({"name": "John Doe", "age": 31, "email": "john.doe@example.com", "updated": true})";
-    if (brpc::CouchbaseUpsert("user::john_doe", updated_user_data, FLAGS_bucket)) {
+    if (couchbase_client.CouchbaseUpsert("user::john_doe", updated_user_data, FLAGS_bucket)) {
         end = std::chrono::high_resolution_clock::now();
         auto micro_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         std::cout << "User data updated successfully with Upsert in " << micro_duration.count() << " μs" << std::endl;
@@ -83,10 +86,10 @@ int main(int argc, char* argv[]) {
     // Example 4: Retrieve the updated data
     std::cout << "\nRetrieving updated user data..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
-    std::string retrieved_data = brpc::CouchbaseGet("user::john_doe", FLAGS_bucket);
+    auto [success, retrieved_data] = couchbase_client.CouchbaseGet("user::john_doe", FLAGS_bucket);
     end = std::chrono::high_resolution_clock::now();
     auto micro_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    if (!retrieved_data.empty()) {
+    if (success && !retrieved_data.empty()) {
         std::cout << "Retrieved updated user data in " << micro_duration.count() << " μs: " << retrieved_data << std::endl;
         operation_times.push_back({"Get user data", micro_duration.count()});
     } else {
@@ -102,7 +105,7 @@ int main(int argc, char* argv[]) {
         
         // First try Add (insert only)
         start = std::chrono::high_resolution_clock::now();
-        if (brpc::CouchbaseAdd(key, value, FLAGS_bucket)) {
+        if (couchbase_client.CouchbaseAdd(key, value, FLAGS_bucket)) {
             end = std::chrono::high_resolution_clock::now();
             auto micro_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
             std::cout << "Added " << key << " using Add operation in " << micro_duration.count() << " μs" << std::endl;
@@ -114,7 +117,7 @@ int main(int argc, char* argv[]) {
             
             // If Add fails, try Upsert
             start = std::chrono::high_resolution_clock::now();
-            if (brpc::CouchbaseUpsert(key, value, FLAGS_bucket)) {
+            if (couchbase_client.CouchbaseUpsert(key, value, FLAGS_bucket)) {
                 end = std::chrono::high_resolution_clock::now();
                 auto upsert_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
                 std::cout << "Updated " << key << " using Upsert operation in " << upsert_duration.count() << " μs (Add failed in " << add_duration.count() << " μs)" << std::endl;
@@ -130,7 +133,7 @@ int main(int argc, char* argv[]) {
     // Example 7: Remove a document
     std::cout << "\nRemoving document..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
-    if (brpc::CouchbaseRemove("item::1", FLAGS_bucket)) {
+    if (couchbase_client.CouchbaseRemove("item::1", FLAGS_bucket)) {
         end = std::chrono::high_resolution_clock::now();
         auto micro_duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         std::cout << "Document removed successfully in " << micro_duration.count() << " μs" << std::endl;
@@ -145,7 +148,7 @@ int main(int argc, char* argv[]) {
     // Cleanup
     std::cout << "\nCleaning up..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
-    brpc::CloseCouchbase();
+    couchbase_client.CloseCouchbase();
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << "Couchbase connection closed in " << duration.count() << " ms" << std::endl;
@@ -177,5 +180,6 @@ int main(int argc, char* argv[]) {
     std::cout << std::string(60, '=') << std::endl;
     
     std::cout << "\nExample completed" << std::endl;
+    
     return 0;
 }

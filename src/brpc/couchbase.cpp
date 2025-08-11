@@ -9,15 +9,15 @@
 #include <memory>
 #include <optional>
 #include <couchbase/codec/tao_json_serializer.hxx>
+#include <iostream>
+using namespace std;
+
+#define RED_TEXT "\033[31m"
+#define RESET_TEXT "\033[0m"
 
 namespace brpc {
 
-// Global Couchbase objects
-static std::optional<couchbase::cluster> g_cluster;
-static std::vector<couchbase::collection> g_collection;
-static bool g_initialized = false;
-
-bool InitCouchbase(const std::string& connection_string,
+bool  CouchbaseObject::InitCouchbase(const std::string& connection_string,
                    const std::string& username,
                    const std::string& password) {
     try {
@@ -26,7 +26,7 @@ bool InitCouchbase(const std::string& connection_string,
         auto [connect_err, cluster] = couchbase::cluster::connect(connection_string, options).get();
         
         if (connect_err) {
-            LOG(ERROR) << "Failed to connect to cluster: " << connect_err.message();
+            cout << "Failed to connect to cluster: " << connect_err.message();
             return false;
         }
         
@@ -35,7 +35,7 @@ bool InitCouchbase(const std::string& connection_string,
         //get all the buckets inside the cluster
         auto [buckets_err, all_buckets] = g_cluster->buckets().get_all_buckets().get();
         if (buckets_err) {
-            LOG(ERROR) << "Failed to get buckets: " << buckets_err.message();
+            cout << "Failed to get buckets: " << buckets_err.message();
             return false;
         }
 
@@ -48,12 +48,12 @@ bool InitCouchbase(const std::string& connection_string,
         g_initialized = true;
         return true;
     } catch (const std::exception& ex) {
-        LOG(ERROR) << "Failed to initialize Couchbase: " << ex.what();
+        cerr << RED_TEXT << "Failed to initialize Couchbase: " << ex.what() << RESET_TEXT;
         return false;
     }
 }
 
-std::optional<couchbase::collection> GetCollectionForBucket(const std::string& bucket_name) {
+std::optional<couchbase::collection> CouchbaseObject::GetCollectionForBucket(const std::string& bucket_name) {
     auto it = std::find_if(
         g_collection.begin(),
         g_collection.end(),
@@ -62,23 +62,24 @@ std::optional<couchbase::collection> GetCollectionForBucket(const std::string& b
         });
 
     if (it == g_collection.end()) {
-        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
+        std::cerr << RED_TEXT << "Collection not found for bucket: " << bucket_name << RESET_TEXT;
         return std::nullopt;
     }
 
     return *it; // copy of the collection handle
 }
 
-std::string CouchbaseGet(const std::string& key, const std::string& bucket_name) {
+std::pair<bool, std::string> CouchbaseObject::CouchbaseGet(const std::string& key, const std::string& bucket_name) {
     if (!g_initialized || g_collection.empty()) {
-        LOG(ERROR) << "Couchbase not initialized";
-        return "";
+        cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
+        // Return an error pair indicating failure
+        return {false, "Couchbase not initialized"};
     }
 
     auto collection = GetCollectionForBucket(bucket_name);
     if (!collection) {
-        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
-        return "";
+        cerr << RED_TEXT << "Collection not found for bucket: " << bucket_name << ", Make sure the bucket exists." << RESET_TEXT;
+        return {false, "Collection not found for bucket " + bucket_name + ", make sure the bucket exists"};
     }
 
     try {
@@ -86,31 +87,33 @@ std::string CouchbaseGet(const std::string& key, const std::string& bucket_name)
         auto [err, result] = collection->get(key).get();
 
         if (err) {
-            LOG(ERROR) << "Get failed for key '" << key << "': " << err.message();
-            return "";
+            std::string error_info = fmt::format("Get failed for key '{}': {} (error code: {})", 
+                                                key, err.message(), err.ec().value());
+            cerr << RED_TEXT << error_info << RESET_TEXT;
+            return {false, "Get failed for key '" + key + "': " + err.message()};
         }
         
         // Convert content to string using raw binary data
         auto content_json = result.content_as<tao::json::value>();
         std::string content = tao::json::to_string(content_json);
-        return content;
-        
-    } catch (const std::exception& ex) {
-        LOG(ERROR) << "Exception during get operation: " << ex.what();
-        return "";
+        return {true, content};
+    } 
+    catch (const std::exception& ex) {
+        cerr << RED_TEXT << "Exception during get operation: " << ex.what() << RESET_TEXT;
+        return {false, "Exception during get operation: " + std::string(ex.what())};
     }
 }
 
-bool CouchbaseUpsert(const std::string& key, const std::string& value, const std::string& bucket_name) {
+bool CouchbaseObject::CouchbaseUpsert(const std::string& key, const std::string& value, const std::string& bucket_name) {
     if (!g_initialized || g_collection.empty()) {
-        LOG(ERROR) << "Couchbase not initialized";
+        cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
         return false;
     }
 
     auto collection = GetCollectionForBucket(bucket_name);
     if (!collection) {
-        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
-        return "";
+        cerr << RED_TEXT << "Collection not found for bucket: " << bucket_name << ", Make sure the bucket exists."<< RESET_TEXT;
+        return false;
     }
 
     try {
@@ -121,28 +124,30 @@ bool CouchbaseUpsert(const std::string& key, const std::string& value, const std
         auto [err, result] = collection->upsert(key, content).get();
 
         if (err) {
-            LOG(ERROR) << "Upsert failed for key '" << key << "': " << err.message();
+            std::string error_info = fmt::format("Upsert failed for key '{}': {} (error code: {})", 
+                                                key, err.message(), err.ec().value());
+            cerr << RED_TEXT << error_info << RESET_TEXT;
             return false;
         }
         
         return true;
         
     } catch (const std::exception& ex) {
-        LOG(ERROR) << "Exception during upsert operation: " << ex.what();
+        cerr << RED_TEXT << "Exception during upsert operation: " << ex.what() << RESET_TEXT;
         return false;
     }
 }
 
-bool CouchbaseAdd(const std::string& key, const std::string& value, const std::string& bucket_name) {
+bool CouchbaseObject::CouchbaseAdd(const std::string& key, const std::string& value, const std::string& bucket_name) {
     if (!g_initialized || g_collection.empty()) {
-        LOG(ERROR) << "Couchbase not initialized";
+        cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
         return false;
     }
 
     auto collection = GetCollectionForBucket(bucket_name);
     if (!collection) {
-        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
-        return "";
+        cerr << RED_TEXT << "Collection not found for bucket: " << bucket_name << ", Make sure the bucket exists." << RESET_TEXT << std::endl;
+        return false;
     }
 
     try {
@@ -152,28 +157,41 @@ bool CouchbaseAdd(const std::string& key, const std::string& value, const std::s
         auto [err, result] = collection->insert(key, content).get();
 
         if (err) {
-            LOG(ERROR) << "Add failed for key '" << key << "': " << err.message();
+            // Try multiple ways to get error information
+            std::string error_details;
+            
+            // Method 1: Try to use fmt formatting directly
+            try {
+                error_details = fmt::format("{}", err);
+            } catch (...) {
+                // Method 2: Fallback to basic error info
+                error_details = fmt::format("Error code: {}, Message: '{}'", 
+                                          err.ec().value(), 
+                                          err.message().empty() ? "No message provided" : err.message());
+            }
+            
+            cerr << RED_TEXT << "Add failed for key '" << key << "': " << error_details << RESET_TEXT << std::endl;
             return false;
         }
         
         return true;
         
     } catch (const std::exception& ex) {
-        LOG(ERROR) << "Exception during add operation: " << ex.what();
+        cerr << RED_TEXT << "Exception during add operation: " << ex.what() << RESET_TEXT;
         return false;
     }
 }
 
-bool CouchbaseRemove(const std::string& key, const std::string& bucket_name) {
+bool CouchbaseObject::CouchbaseRemove(const std::string& key, const std::string& bucket_name) {
     if (!g_initialized || g_collection.empty()) {
-        LOG(ERROR) << "Couchbase not initialized";
+        cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
         return false;
     }
 
     auto collection = GetCollectionForBucket(bucket_name);
     if (!collection) {
-        LOG(ERROR) << "Collection not found for bucket: " << bucket_name;
-        return "";
+        cerr << RED_TEXT << "Collection not found for bucket: " << bucket_name << ", Make sure the bucket exists." << RESET_TEXT;
+        return false;
     }
 
     try {
@@ -181,59 +199,21 @@ bool CouchbaseRemove(const std::string& key, const std::string& bucket_name) {
         auto [err, result] = collection->remove(key).get();
 
         if (err) {
-            LOG(ERROR) << "Remove failed for key '" << key << "': " << err.message();
+            std::string error_info = fmt::format("Remove failed for key '{}': {} (error code: {})", 
+                                                key, err.message(), err.ec().value());
+            cerr << RED_TEXT << error_info << RESET_TEXT;
             return false;
         }
         
         return true;
         
     } catch (const std::exception& ex) {
-        LOG(ERROR) << "Exception during remove operation: " << ex.what();
+        cerr << RED_TEXT << "Exception during remove operation: " << ex.what() << RESET_TEXT;
         return false;
     }
 }
 
-// std::string CouchbaseQuery(const std::string& query_string) {
-//     if (!g_initialized || !g_cluster) {
-//         LOG(ERROR) << "Couchbase not initialized";
-//         return "";
-//     }
-    
-//     try {
-//         // Use Couchbase C++ SDK to execute N1QL query
-//         auto [err, result] = g_cluster->query(query_string, {}).get();
-        
-//         if (err) {
-//             LOG(ERROR) << "Query failed: " << err.message();
-//             return "";
-//         }
-        
-//         // Process query results into JSON array
-//         std::string json_result = "[";
-//         bool first = true;
-        
-//         auto binary_rows = result.rows_as_binary();
-//         for (const auto& row : binary_rows) {
-//             if (!first) {
-//                 json_result += ",";
-//             }
-//             // Convert binary row to string
-//             std::string row_str(reinterpret_cast<const char*>(row.data.data()), row.data.size());
-//             json_result += row_str;
-//             first = false;
-//         }
-//         json_result += "]";
-        
-//         LOG(INFO) << "Query executed successfully, returned " << binary_rows.size() << " rows";
-//         return json_result;
-        
-//     } catch (const std::exception& ex) {
-//         LOG(ERROR) << "Exception during query operation: " << ex.what();
-//         return "";
-//     }
-// }
-
-void CloseCouchbase() {
+void CouchbaseObject::CloseCouchbase() {
     if (g_initialized) {
         g_cluster.reset();
         g_initialized = false;

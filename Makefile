@@ -33,10 +33,26 @@ COMMA = ,
 SOPATHS = $(addprefix -Wl$(COMMA)-rpath$(COMMA), $(LIBS))
 SRCEXTS = .c .cc .cpp .proto
 
-# fmtlib support
-CXXFLAGS += -I/opt/homebrew/opt/fmt/include
-LIBPATHS += -L/opt/homebrew/opt/fmt/lib
-DYNAMIC_LINKINGS += -lfmt
+# fmtlib support - cross-platform detection
+ifeq ($(SYSTEM),Darwin)
+    # macOS: Try Homebrew paths in order of preference
+    ifneq ($(wildcard /opt/homebrew/opt/fmt/include),)
+        CXXFLAGS += -I/opt/homebrew/opt/fmt/include
+        LIBPATHS += -L/opt/homebrew/opt/fmt/lib
+    else ifneq ($(wildcard /usr/local/opt/fmt/include),)
+        CXXFLAGS += -I/usr/local/opt/fmt/include
+        LIBPATHS += -L/usr/local/opt/fmt/lib
+    endif
+    DYNAMIC_LINKINGS += -lfmt
+else
+    # Linux: Use pkg-config if available, otherwise fallback to system paths
+    FMT_CFLAGS := $(shell pkg-config --cflags fmt 2>/dev/null || echo "")
+    FMT_LIBS := $(shell pkg-config --libs fmt 2>/dev/null || echo "-lfmt")
+    ifneq ($(FMT_CFLAGS),)
+        CXXFLAGS += $(FMT_CFLAGS)
+    endif
+    DYNAMIC_LINKINGS += $(FMT_LIBS)
+endif
 
 SOEXT = so
 ifeq ($(SYSTEM),Darwin)

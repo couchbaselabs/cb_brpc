@@ -17,12 +17,12 @@ The current implementation provides a clean C++ interface for Couchbase operatio
 
 ## Initialization
 
-Create and initialize a `CouchbaseObject` for accessing Couchbase:
+Create and initialize a `CouchbaseWrapper` for accessing Couchbase:
 
 ```cpp
 #include <brpc/couchbase.h>
 
-brpc::CouchbaseObject couchbase_client;
+brpc::CouchbaseWrapper couchbase_client;
 
 // Initialize connection to Couchbase cluster
 std::string connection_string = FLAGS_couchbase_host;
@@ -229,7 +229,7 @@ Error messages are logged using brpc's logging system and include detailed error
 
 ## Performance Considerations
 
-- **Connection reuse**: Initialize once and reuse the same `CouchbaseObject` instance
+- **Connection reuse**: Initialize once and reuse the same `CouchbaseWrapper` instance
 - **Thread safety**: The implementation is thread-safe and can be used across multiple threads
 - **JSON serialization**: Uses efficient tao::json library for JSON operations
 - **Connection pooling**: Underlying Couchbase SDK handles connection pooling automatically

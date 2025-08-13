@@ -26,17 +26,17 @@ example/couchbase_example/
 └── README.md                  # This documentation file
 
 src/brpc/
-├── couchbase.h                # CouchbaseObject class declaration
-└── couchbase.cpp              # CouchbaseObject implementation
+├── couchbase.h                # CouchbaseWrapper class declaration
+└── couchbase.cpp              # CouchbaseWrapper implementation
 ```
 
 ---
 
 ## Couchbase Core Implementation (couchbase.cpp)
 
-The `couchbase.cpp` file implements the `CouchbaseObject` class, which provides a C++ wrapper around the Couchbase C++ SDK.
+The `couchbase.cpp` file implements the `CouchbaseWrapper` class, which provides a C++ wrapper around the Couchbase C++ SDK.
 
-### Class: CouchbaseObject
+### Class: CouchbaseWrapper
 
 The main class that encapsulates all Couchbase operations with thread-safe connection management.
 
@@ -62,7 +62,7 @@ bool g_initialized = false;                      // Initialization state flag
 
 **Implementation Details**:
 ```cpp
-bool CouchbaseObject::InitCouchbase(const std::string& connection_string,
+bool CouchbaseWrapper::InitCouchbase(const std::string& connection_string,
                                    const std::string& username,
                                    const std::string& password)
 ```
@@ -90,7 +90,7 @@ bool CouchbaseObject::InitCouchbase(const std::string& connection_string,
 
 **Implementation Details**:
 ```cpp
-std::pair<bool, std::string> CouchbaseObject::CouchbaseGet(const std::string& key, 
+std::pair<bool, std::string> CouchbaseWrapper::CouchbaseGet(const std::string& key, 
                                                           const std::string& bucket_name,
                                                           const std::string& scope,
                                                           const std::string& collection)
@@ -124,7 +124,7 @@ std::pair<bool, std::string> CouchbaseObject::CouchbaseGet(const std::string& ke
 
 **Implementation Details**:
 ```cpp
-bool CouchbaseObject::CouchbaseUpsert(const std::string& key, 
+bool CouchbaseWrapper::CouchbaseUpsert(const std::string& key, 
                                      const std::string& value,
                                      const std::string& bucket_name,
                                      const std::string& scope,
@@ -156,7 +156,7 @@ bool CouchbaseObject::CouchbaseUpsert(const std::string& key,
 
 **Implementation Details**:
 ```cpp
-bool CouchbaseObject::CouchbaseAdd(const std::string& key, 
+bool CouchbaseWrapper::CouchbaseAdd(const std::string& key, 
                                   const std::string& value,
                                   const std::string& bucket_name,
                                   const std::string& scope,
@@ -178,7 +178,7 @@ bool CouchbaseObject::CouchbaseAdd(const std::string& key,
 
 **Implementation Details**:
 ```cpp
-bool CouchbaseObject::CouchbaseRemove(const std::string& key,
+bool CouchbaseWrapper::CouchbaseRemove(const std::string& key,
                                      const std::string& bucket_name,
                                      const std::string& scope,
                                      const std::string& collection)
@@ -234,7 +234,7 @@ std::pair<bool, std::vector<std::string>> Query(std::string statement,
 
 **Implementation Details**:
 ```cpp
-void CouchbaseObject::CloseCouchbase()
+void CouchbaseWrapper::CloseCouchbase()
 ```
 **Process Flow**:
 1. Checks initialization state

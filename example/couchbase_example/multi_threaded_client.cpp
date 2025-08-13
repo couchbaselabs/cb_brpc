@@ -15,7 +15,7 @@ DEFINE_string(username, "Administrator", "Couchbase username");
 DEFINE_string(password, "password", "Couchbase password");
 
 struct thread_parameters {
-  brpc::CouchbaseObject *couchbase_client;
+  brpc::CouchbaseWrapper *couchbase_client;
   std::string bucket_name;
 };
 
@@ -23,7 +23,7 @@ struct thread_parameters {
 // single connection to a cluster
 void *threaded_example(void *arg) {
   thread_parameters *params = static_cast<thread_parameters *>(arg);
-  brpc::CouchbaseObject *couchbase_client = params->couchbase_client;
+  brpc::CouchbaseWrapper *couchbase_client = params->couchbase_client;
   std::string bucket_name = params->bucket_name;
 
   // Example operations
@@ -105,8 +105,8 @@ int main(int argc, char *argv[]) {
   // Parse command line flags
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
 
-  // Create CouchbaseObject instance
-  brpc::CouchbaseObject couchbase_client;
+  // Create CouchbaseWrapper instance
+  brpc::CouchbaseWrapper couchbase_client;
   std::string connection_string = FLAGS_couchbase_host;
   if (!couchbase_client.InitCouchbase(connection_string, FLAGS_username,
                                       FLAGS_password)) {

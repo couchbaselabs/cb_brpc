@@ -117,6 +117,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 find_package(GFLAGS REQUIRED)
 
+find_package(fmt REQUIRED)
+find_package(couchbase_cxx_client REQUIRED)
+
 include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_BINARY_DIR}

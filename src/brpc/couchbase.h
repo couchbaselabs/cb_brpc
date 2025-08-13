@@ -7,10 +7,10 @@
 
 namespace brpc {
 
-class CouchbaseObject {
+class CouchbaseWrapper {
  public:
-  CouchbaseObject() = default;
-  ~CouchbaseObject() { CloseCouchbase(); }
+  CouchbaseWrapper() = default;
+  ~CouchbaseWrapper() { CloseCouchbase(); }
   // Initialize Couchbase connection (call once at startup)
   bool InitCouchbase(const std::string& connection_string,
                      const std::string& username, const std::string& password);

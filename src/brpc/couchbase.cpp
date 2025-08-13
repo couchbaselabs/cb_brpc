@@ -20,7 +20,7 @@ using namespace std;
 
 namespace brpc {
 
-bool CouchbaseObject::InitCouchbase(const std::string& connection_string,
+bool CouchbaseWrapper::InitCouchbase(const std::string& connection_string,
                                     const std::string& username,
                                     const std::string& password) {
   try {
@@ -44,7 +44,7 @@ bool CouchbaseObject::InitCouchbase(const std::string& connection_string,
   }
 }
 
-std::pair<bool, std::string> CouchbaseObject::CouchbaseGet(
+std::pair<bool, std::string> CouchbaseWrapper::CouchbaseGet(
     const std::string& key, const std::string& bucket_name,
     const std::string& scope, const std::string& collection) {
   if (!g_initialized) {
@@ -79,7 +79,7 @@ std::pair<bool, std::string> CouchbaseObject::CouchbaseGet(
   }
 }
 
-bool CouchbaseObject::CouchbaseUpsert(const std::string& key,
+bool CouchbaseWrapper::CouchbaseUpsert(const std::string& key,
                                       const std::string& value,
                                       const std::string& bucket_name,
                                       const std::string& scope,
@@ -115,7 +115,7 @@ bool CouchbaseObject::CouchbaseUpsert(const std::string& key,
   }
 }
 
-bool CouchbaseObject::CouchbaseAdd(const std::string& key,
+bool CouchbaseWrapper::CouchbaseAdd(const std::string& key,
                                    const std::string& value,
                                    const std::string& bucket_name,
                                    const std::string& scope,
@@ -162,7 +162,7 @@ bool CouchbaseObject::CouchbaseAdd(const std::string& key,
   }
 }
 
-bool CouchbaseObject::CouchbaseRemove(const std::string& key,
+bool CouchbaseWrapper::CouchbaseRemove(const std::string& key,
                                       const std::string& bucket_name,
                                       const std::string& scope,
                                       const std::string& collection) {
@@ -205,7 +205,7 @@ vector<std::string> query_result_parser(couchbase::query_result& result) {
 }
 
 // query operation at cluster level with query options
-std::pair<bool, vector<std::string>> CouchbaseObject::Query(
+std::pair<bool, vector<std::string>> CouchbaseWrapper::Query(
     std::string statement, couchbase::query_options& q_opts) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
@@ -231,7 +231,7 @@ std::pair<bool, vector<std::string>> CouchbaseObject::Query(
 }
 
 // Query operation at cluster level without query options
-std::pair<bool, vector<std::string>> CouchbaseObject::Query(
+std::pair<bool, vector<std::string>> CouchbaseWrapper::Query(
     std::string statement) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
@@ -257,7 +257,7 @@ std::pair<bool, vector<std::string>> CouchbaseObject::Query(
 }
 
 // Query operation at scope level without query options
-std::pair<bool, vector<std::string>> CouchbaseObject::Query(
+std::pair<bool, vector<std::string>> CouchbaseWrapper::Query(
     std::string statement, const std::string& bucket_name,
     const std::string& scope_name) {
   if (!g_initialized) {
@@ -295,7 +295,7 @@ std::pair<bool, vector<std::string>> CouchbaseObject::Query(
 }
 
 // Query operation at scope level with query options
-std::pair<bool, vector<std::string>> CouchbaseObject::Query(
+std::pair<bool, vector<std::string>> CouchbaseWrapper::Query(
     std::string statement, const std::string& bucket_name,
     const std::string& scope_name, couchbase::query_options& q_opts) {
   if (!g_initialized) {
@@ -324,7 +324,7 @@ std::pair<bool, vector<std::string>> CouchbaseObject::Query(
   }
 }
 
-void CouchbaseObject::CloseCouchbase() {
+void CouchbaseWrapper::CloseCouchbase() {
   if (g_initialized) {
     g_cluster.reset();
     g_initialized = false;

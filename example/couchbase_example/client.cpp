@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) {
   // Parse command line flags
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
 
-  // Create CouchbaseObject instance
-  brpc::CouchbaseObject couchbase_client;
+  // Create CouchbaseWrapper instance
+  brpc::CouchbaseWrapper couchbase_client;
 
   // Variables to store operation timings
   std::vector<std::pair<std::string, long long>> operation_times;

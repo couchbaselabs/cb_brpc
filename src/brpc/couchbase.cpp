@@ -263,7 +263,6 @@ std::pair<bool,vector<std::string>> CouchbaseObject::Query(std::string statement
     //if the bucket or scope does not exist, it will not throw an error
     //rather the error will be thrown when the query is executed
     try{
-        // Use Couchbase C++ SDK to execute N1QL query
         auto [err, result] = scope.query(statement,q_opts).get();
 
         if (err) {

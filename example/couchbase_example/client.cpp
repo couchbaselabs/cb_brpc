@@ -5,6 +5,7 @@
 #include <utility>
 #include <iomanip>
 #include "brpc/couchbase.h"
+#include <couchbase/codec/tao_json_serializer.hxx>
 
 DEFINE_string(couchbase_host, "localhost", "Couchbase server host");
 DEFINE_string(username, "Administrator", "Couchbase username");
@@ -135,11 +136,13 @@ int main(int argc, char* argv[]) {
     std::cout << "TESTING N1QL QUERY OPERATIONS" << std::endl;
     std::cout << std::string(50, '=') << std::endl;
     
-    // Query 1: Select all documents from the bucket
+    // Query 1: Select all documents using cluster from the bucket
     std::cout << "\n1. Querying all documents from bucket '" << FLAGS_bucket << "'..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
     std::string select_all_query = "SELECT META().id, * FROM `" + FLAGS_bucket + "` WHERE META().id LIKE 'user::%' OR META().id LIKE 'item::%'";
-    auto [query_success1, query_results1] = couchbase_client.Query(select_all_query);
+    
+    auto [query_success1, query_results1] = couchbase_client.Query(select_all_query);   //this function uses the cluster level query execution
+    
     end = std::chrono::high_resolution_clock::now();
     auto query_duration1 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
@@ -163,7 +166,9 @@ int main(int argc, char* argv[]) {
     std::cout << "\n2. Testing query with explicit bucket and scope..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
     std::string scoped_query = "SELECT META().id, email FROM _default WHERE email LIKE '%@%'";  //Here default collection is used, since scope is already specified you need to run the query on the collection
-    auto [query_success6, query_results6] = couchbase_client.Query(scoped_query, FLAGS_bucket, "_default");
+    
+    auto [query_success6, query_results6] = couchbase_client.Query(scoped_query, FLAGS_bucket, "_default"); //here default is specifying the scope explicitly, hence this function uses the scope level query execution
+    
     end = std::chrono::high_resolution_clock::now();
     auto query_duration6 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
@@ -179,11 +184,51 @@ int main(int argc, char* argv[]) {
         operation_times.push_back({"N1QL Query - Scoped (failed)", query_duration6.count()});
     }
     
+    //Example 7: Query with parameters
+    std::cout<<"\n Running query with query options..."<<std::endl;
+    
+    // Build a mutation state for consistency
+    couchbase::mutation_state consistency_state;
+    // Compose the query with placeholders ex-$1
+    std::string scoped_parameterized_query = R"(
+        SELECT * FROM _default WHERE email = $1 LIMIT 10;
+    )";
+    // Configure options
+    couchbase::query_options opts{};
+    opts.client_context_id("my-query-ctx")
+        .consistent_with(consistency_state)
+        .metrics(true)
+        .profile(couchbase::query_profile::phases)
+        .adhoc(false);
+    
+
+    // add positional parameters, you can also use named parameters and other query options that might be required.
+    const std::vector<std::string> param = {"john"};
+    for(const auto& p : param) {
+        opts.add_positional_parameter(p);
+    }
+    start = std::chrono::high_resolution_clock::now();
+    auto [query_success7, query_results7] = couchbase_client.Query(scoped_parameterized_query, FLAGS_bucket, "_default", opts);
+    end = std::chrono::high_resolution_clock::now();
+    auto query_duration7 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    if (query_success7) {
+        std::cout << "Parameterized query executed successfully." << std::endl;
+        std::cout << "Found " << query_results7.size() << " documents with email addresses:" << std::endl;
+        for (const auto& result : query_results7) {
+            std::cout << "  " << result << std::endl;
+        }
+        operation_times.push_back({"N1QL Query - Parameterized", query_duration7.count()});
+    } else {
+        std::cerr << "Parameterized query failed." << std::endl;
+        operation_times.push_back({"N1QL Query - Parameterized (failed)", query_duration7.count()});
+    }
+
+
     std::cout << "\n" << std::string(50, '=') << std::endl;
     std::cout << "QUERY TESTING COMPLETED" << std::endl;
     std::cout << std::string(50, '=') << std::endl;
-    
-    // Example 7: Remove a document
+
+    // Example 8: Remove a document
     std::cout << "\nRemoving document..." << std::endl;
     start = std::chrono::high_resolution_clock::now();
     if (couchbase_client.CouchbaseRemove("item::1", FLAGS_bucket)) {

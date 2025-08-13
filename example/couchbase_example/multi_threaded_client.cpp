@@ -7,7 +7,7 @@
 #include <iomanip>
 #include "brpc/couchbase.h"
 
-DEFINE_string(couchbase_host, "localhost", "Couchbase server host");
+DEFINE_string(couchbase_host, "couchbases://localhost", "Couchbase server host");
 DEFINE_string(username, "Administrator", "Couchbase username");
 DEFINE_string(password, "password", "Couchbase password");
 
@@ -94,8 +94,8 @@ int main(int argc, char* argv[]) {
     
     // Create CouchbaseObject instance
     brpc::CouchbaseObject couchbase_client;
-
-    if(!couchbase_client.InitCouchbase("couchbase://" + FLAGS_couchbase_host, FLAGS_username, FLAGS_password)){
+    std::string connection_string = FLAGS_couchbase_host;
+    if(!couchbase_client.InitCouchbase(connection_string, FLAGS_username, FLAGS_password)){
         std::cerr << "Failed to initialize Couchbase connection" << std::endl;
         return -1;
     }

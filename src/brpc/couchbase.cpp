@@ -26,7 +26,7 @@ bool  CouchbaseObject::InitCouchbase(const std::string& connection_string,
         auto [connect_err, cluster] = couchbase::cluster::connect(connection_string, options).get();
         
         if (connect_err) {
-            cerr << RED_TEXT << "Failed to connect to cluster: " << connect_err.message() << RESET_TEXT;
+            fmt::println(RED_TEXT "Failed to connect to cluster: {}" RESET_TEXT , connect_err);
             return false;
         }
         g_cluster = std::move(cluster);

@@ -7,9 +7,9 @@
 #include "brpc/couchbase.h"
 #include <couchbase/codec/tao_json_serializer.hxx>
 
-DEFINE_string(couchbase_host, "localhost", "Couchbase server host");
-DEFINE_string(username, "Administrator", "Couchbase username");
-DEFINE_string(password, "password", "Couchbase password");
+DEFINE_string(couchbase_host, "couchbases://localhost", "Couchbase server host");
+DEFINE_string(username, "selfdb", "Couchbase username");
+DEFINE_string(password, "Selfdb@1", "Couchbase password");
 DEFINE_string(bucket, "testing", "Couchbase bucket name");
 
 int main(int argc, char* argv[]) {
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     // Initialize Couchbase connection
     std::cout << "Initializing Couchbase connection..." << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
-    std::string connection_string = "couchbase://" + FLAGS_couchbase_host;
+    std::string connection_string = FLAGS_couchbase_host;
     if (!couchbase_client.InitCouchbase(connection_string, FLAGS_username, FLAGS_password)) {
         std::cerr << "Failed to initialize Couchbase" << std::endl;
         return -1;

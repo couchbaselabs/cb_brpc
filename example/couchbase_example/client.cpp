@@ -130,6 +130,59 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    // Example 6: N1QL Query Operations
+    std::cout << "\n" << std::string(50, '=') << std::endl;
+    std::cout << "TESTING N1QL QUERY OPERATIONS" << std::endl;
+    std::cout << std::string(50, '=') << std::endl;
+    
+    // Query 1: Select all documents from the bucket
+    std::cout << "\n1. Querying all documents from bucket '" << FLAGS_bucket << "'..." << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    std::string select_all_query = "SELECT META().id, * FROM `" + FLAGS_bucket + "` WHERE META().id LIKE 'user::%' OR META().id LIKE 'item::%'";
+    auto [query_success1, query_results1] = couchbase_client.Query(select_all_query);
+    end = std::chrono::high_resolution_clock::now();
+    auto query_duration1 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    
+    if (query_success1) {
+        std::cout << "Query executed successfully in " << query_duration1.count() << " μs" << std::endl;
+        std::cout << "Found " << query_results1.size() << " documents:" << std::endl;
+        for (size_t i = 0; i < query_results1.size() && i < 5; ++i) {  // Show first 5 results
+            std::cout << "  Result " << (i+1) << ": " << query_results1[i] << std::endl;
+        }
+        if (query_results1.size() > 5) {
+            std::cout << "  ... and " << (query_results1.size() - 5) << " more results" << std::endl;
+        }
+        operation_times.push_back({"N1QL Query - Select All", query_duration1.count()});
+    } else {
+        std::cerr << "Query failed - took " << query_duration1.count() << " μs" << std::endl;
+        operation_times.push_back({"N1QL Query - Select All (failed)", query_duration1.count()});
+    }
+    
+    
+    // Query 2: Test query with specific bucket and scope
+    std::cout << "\n2. Testing query with explicit bucket and scope..." << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    std::string scoped_query = "SELECT META().id, email FROM _default WHERE email LIKE '%@%'";  //Here default collection is used, since scope is already specified you need to run the query on the collection
+    auto [query_success6, query_results6] = couchbase_client.Query(scoped_query, FLAGS_bucket, "_default");
+    end = std::chrono::high_resolution_clock::now();
+    auto query_duration6 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    
+    if (query_success6) {
+        std::cout << "Scoped query executed successfully in " << query_duration6.count() << " μs" << std::endl;
+        std::cout << "Found " << query_results6.size() << " documents with email addresses:" << std::endl;
+        for (const auto& result : query_results6) {
+            std::cout << "  " << result << std::endl;
+        }
+        operation_times.push_back({"N1QL Query - Scoped", query_duration6.count()});
+    } else {
+        std::cerr << "Scoped query failed - took " << query_duration6.count() << " μs" << std::endl;
+        operation_times.push_back({"N1QL Query - Scoped (failed)", query_duration6.count()});
+    }
+    
+    std::cout << "\n" << std::string(50, '=') << std::endl;
+    std::cout << "QUERY TESTING COMPLETED" << std::endl;
+    std::cout << std::string(50, '=') << std::endl;
+    
     // Example 7: Remove a document
     std::cout << "\nRemoving document..." << std::endl;
     start = std::chrono::high_resolution_clock::now();

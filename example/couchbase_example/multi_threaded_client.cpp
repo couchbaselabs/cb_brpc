@@ -95,9 +95,12 @@ int main(int argc, char* argv[]) {
     // Create CouchbaseObject instance
     brpc::CouchbaseObject couchbase_client;
 
-    couchbase_client.InitCouchbase("couchbase://" + FLAGS_couchbase_host, FLAGS_username, FLAGS_password);
+    if(!couchbase_client.InitCouchbase("couchbase://" + FLAGS_couchbase_host, FLAGS_username, FLAGS_password)){
+        std::cerr << "Failed to initialize Couchbase connection" << std::endl;
+        return -1;
+    }
 
-    std::string bucket_name = "testing_";
+    std::string bucket_name = "testing";
     thread_parameters params[5];
     for(int i = 0; i < 5; i++) {
         params[i] = {&couchbase_client, bucket_name + std::to_string(i)};

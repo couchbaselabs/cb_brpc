@@ -22,7 +22,7 @@ include $(BRPC_PATH)/config.mk
 # 1. Added -fno-omit-frame-pointer: perf/tcmalloc-profiler use frame pointers by default
 CXXFLAGS+=$(CPPFLAGS) -std=c++17 -DNDEBUG -O2 -pipe -W -Wall -Wno-unused-parameter -fPIC -fno-omit-frame-pointer
 ifeq ($(NEED_GPERFTOOLS), 1)
-	CXXFLAGS+=-DBRPC_ENABLE_CPU_PROFILER
+    CXXFLAGS+=-DBRPC_ENABLE_CPU_PROFILER
 endif
 HDRS+=$(BRPC_PATH)/output/include
 LIBS+=$(BRPC_PATH)/output/lib
@@ -32,9 +32,16 @@ LIBPATHS=$(addprefix -L, $(LIBS))
 COMMA=,
 SOPATHS=$(addprefix -Wl$(COMMA)-rpath$(COMMA), $(LIBS))
 
-# Add fmt library paths
-HDRPATHS += -I/opt/homebrew/opt/fmt/include
-LIBPATHS += -L/opt/homebrew/opt/fmt/lib
+# Add platform-specific library paths
+ifeq ($(SYSTEM),Darwin)
+    # macOS - Homebrew paths
+    HDRPATHS += -I/opt/homebrew/include -I/usr/local/include
+    LIBPATHS += -L/opt/homebrew/lib -L/usr/local/lib
+else ifeq ($(SYSTEM),Linux)
+    # Linux - standard paths, make sure to edit these paths to your couchbase-cxx-client library location and fmt library location
+    HDRPATHS += -I/usr/local/include -I/usr/include
+    LIBPATHS += -L/usr/local/lib -L/usr/lib -L/usr/lib/x86_64-linux-gnu
+endif
 
 CLIENT_SOURCES = client.cpp
 MULTI_THREADED_SOURCES = multi_threaded_client.cpp
@@ -50,17 +57,17 @@ COUCHBASE_OBJ = $(BRPC_PATH)/src/brpc/couchbase.o
 
 ifeq ($(SYSTEM),Darwin)
  ifneq ("$(LINK_SO)", "")
-	STATIC_LINKINGS += -lbrpc
+    STATIC_LINKINGS += -lbrpc
  else
-	# *.a must be explicitly specified in clang
-	STATIC_LINKINGS += $(BRPC_PATH)/output/lib/libbrpc.a
+    # *.a must be explicitly specified in clang
+    STATIC_LINKINGS += $(BRPC_PATH)/output/lib/libbrpc.a
  endif
-	LINK_OPTIONS_SO = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lfmt
-	LINK_OPTIONS = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lfmt
+    LINK_OPTIONS_SO = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lfmt
+    LINK_OPTIONS = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lfmt
 else ifeq ($(SYSTEM),Linux)
-	STATIC_LINKINGS += -lbrpc
-	LINK_OPTIONS_SO = -Xlinker "-(" $^ -Xlinker "-)" $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS)
-	LINK_OPTIONS = -Xlinker "-(" $^ -Wl,-Bstatic $(STATIC_LINKINGS) -Wl,-Bdynamic -Xlinker "-)" $(DYNAMIC_LINKINGS)
+    STATIC_LINKINGS += -lbrpc
+    LINK_OPTIONS_SO = -Xlinker "-(" $^ -Xlinker "-)" $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lcouchbase_cxx_client -lfmt
+    LINK_OPTIONS = -Xlinker "-(" $^ -Wl,-Bstatic $(STATIC_LINKINGS) -Wl,-Bdynamic -Xlinker "-)" $(DYNAMIC_LINKINGS) -lcouchbase_cxx_client -lfmt
 endif
 
 .PHONY:all clean help test
@@ -72,9 +79,7 @@ help:
 	@echo "  couchbase_client        - Build the single cluster couchbase_client executable"
 	@echo "  clean                   - Remove all generated files"
 	@echo "  test                    - Run the single cluster client with default parameters"
-	@echo "  help                    - Show this help message"
-
-test: couchbase_client
+	@echo "  help                    - Show this help message"test: couchbase_client
 	@echo "> Running couchbase_client test"
 	./couchbase_client --help
 

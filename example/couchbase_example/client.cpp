@@ -4,15 +4,15 @@
 #include <couchbase/codec/tao_json_serializer.hxx>
 #include <iomanip>
 #include <iostream>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include "brpc/couchbase.h"
 
-DEFINE_string(couchbase_host, "couchbases://localhost",
-              "Couchbase server host");
-DEFINE_string(username, "selfdb", "Couchbase username");
-DEFINE_string(password, "Selfdb@1", "Couchbase password");
+DEFINE_string(couchbase_host, "couchbase://localhost", "Couchbase server host");
+DEFINE_string(username, "Administrator", "Couchbase username");
+DEFINE_string(password, "password", "Couchbase password");
 DEFINE_string(bucket, "testing", "Couchbase bucket name");
 
 int main(int argc, char* argv[]) {
@@ -29,8 +29,8 @@ int main(int argc, char* argv[]) {
 
   // Initialize Couchbase connection
   std::cout << "Initializing Couchbase connection..." << std::endl;
-  auto start = std::chrono::high_resolution_clock::now();
   std::string connection_string = FLAGS_couchbase_host;
+  auto start = std::chrono::high_resolution_clock::now();
   if (!couchbase_client.InitCouchbase(connection_string, FLAGS_username,
                                       FLAGS_password)) {
     std::cerr << "Failed to initialize Couchbase" << std::endl;
@@ -47,93 +47,98 @@ int main(int argc, char* argv[]) {
 
   // Example 1: Store user data using Add (insert only)
   std::cout << "\nAdding user data (insert only)..." << std::endl;
-  start = std::chrono::high_resolution_clock::now();
   std::string user_data =
       R"({"name": "John Doe", "age": 30, "email": "john@example.com"})";
-  if (couchbase_client.CouchbaseAdd("user::john_doe", user_data,
-                                    FLAGS_bucket)) {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  start = std::chrono::high_resolution_clock::now();
+  auto add_response =
+      couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket);
+  end = std::chrono::high_resolution_clock::now();
+  auto micro_duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  if (add_response.success) {
     std::cout << "User data added successfully in " << micro_duration.count()
               << " μs" << std::endl;
     operation_times.push_back(
         {"Add user data (first attempt)", micro_duration.count()});
   } else {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cerr << "Failed to add user data (document may already exist) - took "
-              << micro_duration.count() << " μs" << std::endl;
-    operation_times.push_back(
-        {"Add user data (first attempt - failed)", micro_duration.count()});
+    // based on the returned error do actual error handling
+    if (add_response.err.ec() == couchbase::errc::key_value::document_exists) {
+      std::cerr << "Document already exists" << std::endl;
+    }
   }
 
   // Example 2: Try to add the same document again (should fail)
   std::cout << "\nTrying to add the same user data again (should fail)..."
             << std::endl;
   start = std::chrono::high_resolution_clock::now();
-  if (couchbase_client.CouchbaseAdd("user::john_doe", user_data,
-                                    FLAGS_bucket)) {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  add_response =
+      couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket);
+  end = std::chrono::high_resolution_clock::now();
+  micro_duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  if (add_response.success) {
     std::cout << "User data added successfully (unexpected) - took "
               << micro_duration.count() << " μs" << std::endl;
     operation_times.push_back(
         {"Add user data (second attempt - unexpected success)",
          micro_duration.count()});
   } else {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     std::cout << "Add operation failed as expected - took "
               << micro_duration.count() << " μs" << std::endl;
     operation_times.push_back(
         {"Add user data (second attempt - expected failure)",
          micro_duration.count()});
+    // based on the returned error do actual error handling
+    if (add_response.err.ec() == couchbase::errc::key_value::document_exists) {
+      std::cerr << "Document already exists" << std::endl;
+    }
   }
 
   // Example 3: Use Upsert to update existing document
   std::cout << "\nUpdating user data using Upsert..." << std::endl;
-  start = std::chrono::high_resolution_clock::now();
   std::string updated_user_data =
       R"({"name": "John Doe", "age": 31, "email": "john.doe@example.com", "updated": true})";
-  if (couchbase_client.CouchbaseUpsert("user::john_doe", updated_user_data,
-                                       FLAGS_bucket)) {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  start = std::chrono::high_resolution_clock::now();
+  auto upsert_response = couchbase_client.CouchbaseUpsert(
+      "user::john_doe", updated_user_data, FLAGS_bucket);
+  end = std::chrono::high_resolution_clock::now();
+  micro_duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  if (upsert_response.success) {
     std::cout << "User data updated successfully with Upsert in "
               << micro_duration.count() << " μs" << std::endl;
     operation_times.push_back({"Upsert user data", micro_duration.count()});
   } else {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     std::cerr << "Failed to update user data - took " << micro_duration.count()
               << " μs" << std::endl;
     operation_times.push_back(
         {"Upsert user data (failed)", micro_duration.count()});
+
+    // based on the returned error do the error handling
+    if (upsert_response.err.ec() ==
+        couchbase::errc::key_value::document_not_found) {
+      std::cerr << "Document not found for update" << std::endl;
+    }
   }
 
   // Example 4: Retrieve the updated data
   std::cout << "\nRetrieving updated user data..." << std::endl;
   start = std::chrono::high_resolution_clock::now();
-  auto [success, retrieved_data] =
+  auto get_response =
       couchbase_client.CouchbaseGet("user::john_doe", FLAGS_bucket);
   end = std::chrono::high_resolution_clock::now();
-  auto micro_duration =
+  micro_duration =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  if (success && !retrieved_data.empty()) {
+  if (get_response.success) {
     std::cout << "Retrieved updated user data in " << micro_duration.count()
-              << " μs: " << retrieved_data << std::endl;
+              << " μs: " << get_response.data << std::endl;
     operation_times.push_back({"Get user data", micro_duration.count()});
   } else {
-    std::cerr << "Failed to retrieve user data - took "
-              << micro_duration.count() << " μs" << std::endl;
-    operation_times.push_back(
-        {"Get user data (failed)", micro_duration.count()});
+    // get the error
+    if (get_response.err.ec() ==
+        couchbase::errc::key_value::document_not_found) {
+      std::cerr << "Document not found for get operation" << std::endl;
+    }
   }
 
   // Example 5: Store multiple documents using Add and Upsert
@@ -145,10 +150,11 @@ int main(int argc, char* argv[]) {
 
     // First try Add (insert only)
     start = std::chrono::high_resolution_clock::now();
-    if (couchbase_client.CouchbaseAdd(key, value, FLAGS_bucket)) {
-      end = std::chrono::high_resolution_clock::now();
-      auto micro_duration =
-          std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    add_response = couchbase_client.CouchbaseAdd(key, value, FLAGS_bucket);
+    end = std::chrono::high_resolution_clock::now();
+    micro_duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    if (add_response.success) {
       std::cout << "Added " << key << " using Add operation in "
                 << micro_duration.count() << " μs" << std::endl;
       operation_times.push_back({"Add " + key, micro_duration.count()});
@@ -161,8 +167,10 @@ int main(int argc, char* argv[]) {
 
       // If Add fails, try Upsert
       start = std::chrono::high_resolution_clock::now();
-      if (couchbase_client.CouchbaseUpsert(key, value, FLAGS_bucket)) {
-        end = std::chrono::high_resolution_clock::now();
+      auto upsert_response_multiple =
+          couchbase_client.CouchbaseUpsert(key, value, FLAGS_bucket);
+      end = std::chrono::high_resolution_clock::now();
+      if (upsert_response_multiple.success) {
         auto upsert_duration =
             std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         std::cout << "Updated " << key << " using Upsert operation in "
@@ -171,15 +179,7 @@ int main(int argc, char* argv[]) {
         operation_times.push_back(
             {"Upsert " + key + " (fallback)", upsert_duration.count()});
       } else {
-        end = std::chrono::high_resolution_clock::now();
-        auto upsert_duration =
-            std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-        std::cerr << "Failed to store " << key
-                  << " - Add: " << add_duration.count()
-                  << " μs, Upsert: " << upsert_duration.count() << " μs"
-                  << std::endl;
-        operation_times.push_back(
-            {"Upsert " + key + " (failed fallback)", upsert_duration.count()});
+        // handle the error based on the returned error
       }
     }
   }
@@ -191,12 +191,11 @@ int main(int argc, char* argv[]) {
   // Query 1: Select all documents using cluster from the bucket
   std::cout << "\n1. Querying all documents from bucket '" << FLAGS_bucket
             << "'..." << std::endl;
-  start = std::chrono::high_resolution_clock::now();
   std::string select_all_query =
       "SELECT META().id, * FROM `" + FLAGS_bucket +
       "` WHERE META().id LIKE 'user::%' OR META().id LIKE 'item::%'";
-
-  auto [query_success1, query_results1] = couchbase_client.Query(
+  start = std::chrono::high_resolution_clock::now();
+  auto query_response1 = couchbase_client.Query(
       select_all_query);  // this function uses the cluster level query
                           // execution
 
@@ -204,18 +203,18 @@ int main(int argc, char* argv[]) {
   auto query_duration1 =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-  if (query_success1) {
+  if (query_response1.success) {
     std::cout << "Query executed successfully in " << query_duration1.count()
               << " μs" << std::endl;
-    std::cout << "Found " << query_results1.size()
+    std::cout << "Found " << query_response1.result.size()
               << " documents:" << std::endl;
-    for (size_t i = 0; i < query_results1.size() && i < 5;
+    for (size_t i = 0; i < query_response1.result.size() && i < 5;
          ++i) {  // Show first 5 results
-      std::cout << "  Result " << (i + 1) << ": " << query_results1[i]
+      std::cout << "  Result " << (i + 1) << ": " << query_response1.result[i]
                 << std::endl;
     }
-    if (query_results1.size() > 5) {
-      std::cout << "  ... and " << (query_results1.size() - 5)
+    if (query_response1.result.size() > 5) {
+      std::cout << "  ... and " << (query_response1.result.size() - 5)
                 << " more results" << std::endl;
     }
     operation_times.push_back(
@@ -225,12 +224,14 @@ int main(int argc, char* argv[]) {
               << std::endl;
     operation_times.push_back(
         {"N1QL Query - Select All (failed)", query_duration1.count()});
+    if (query_response1.err.ec() == couchbase::errc::query::index_failure) {
+      std::cerr << "Index not found for query" << std::endl;
+    }
   }
 
   // Query 2: Test query with specific bucket and scope
   std::cout << "\n2. Testing query with explicit bucket and scope..."
             << std::endl;
-  start = std::chrono::high_resolution_clock::now();
   std::string scoped_query =
       "SELECT META().id, email FROM _default WHERE email LIKE '%@%'";  // Here
                                                                        // default
@@ -249,8 +250,8 @@ int main(int argc, char* argv[]) {
                                                                        // query
                                                                        // on the
                                                                        // collection
-
-  auto [query_success6, query_results6] = couchbase_client.Query(
+  start = std::chrono::high_resolution_clock::now();
+  auto query_response2 = couchbase_client.Query(
       scoped_query, FLAGS_bucket,
       "_default");  // here default is specifying the scope explicitly, hence
                     // this function uses the scope level query execution
@@ -259,12 +260,12 @@ int main(int argc, char* argv[]) {
   auto query_duration6 =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-  if (query_success6) {
+  if (query_response2.success) {
     std::cout << "Scoped query executed successfully in "
               << query_duration6.count() << " μs" << std::endl;
-    std::cout << "Found " << query_results6.size()
+    std::cout << "Found " << query_response2.result.size()
               << " documents with email addresses:" << std::endl;
-    for (const auto& result : query_results6) {
+    for (const auto& result : query_response2.result) {
       std::cout << "  " << result << std::endl;
     }
     operation_times.push_back({"N1QL Query - Scoped", query_duration6.count()});
@@ -273,6 +274,9 @@ int main(int argc, char* argv[]) {
               << " μs" << std::endl;
     operation_times.push_back(
         {"N1QL Query - Scoped (failed)", query_duration6.count()});
+    if (query_response2.err.ec() == couchbase::errc::query::index_failure) {
+      std::cerr << "Index not found for query" << std::endl;
+    }
   }
 
   // Example 7: Query with parameters
@@ -299,16 +303,16 @@ int main(int argc, char* argv[]) {
     opts.add_positional_parameter(p);
   }
   start = std::chrono::high_resolution_clock::now();
-  auto [query_success7, query_results7] = couchbase_client.Query(
-      scoped_parameterized_query, FLAGS_bucket, "_default", opts);
+  auto query_response3 = couchbase_client.Query(scoped_parameterized_query,
+                                                FLAGS_bucket, "_default", opts);
   end = std::chrono::high_resolution_clock::now();
   auto query_duration7 =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  if (query_success7) {
+  if (query_response3.success) {
     std::cout << "Parameterized query executed successfully." << std::endl;
-    std::cout << "Found " << query_results7.size()
+    std::cout << "Found " << query_response3.result.size()
               << " documents with email addresses:" << std::endl;
-    for (const auto& result : query_results7) {
+    for (const auto& result : query_response3.result) {
       std::cout << "  " << result << std::endl;
     }
     operation_times.push_back(
@@ -317,6 +321,9 @@ int main(int argc, char* argv[]) {
     std::cerr << "Parameterized query failed." << std::endl;
     operation_times.push_back(
         {"N1QL Query - Parameterized (failed)", query_duration7.count()});
+    if (query_response3.err.ec() == couchbase::errc::query::index_failure) {
+      std::cerr << "Index not found for query" << std::endl;
+    }
   }
 
   std::cout << "\n" << std::string(50, '=') << std::endl;
@@ -326,21 +333,19 @@ int main(int argc, char* argv[]) {
   // Example 8: Remove a document
   std::cout << "\nRemoving document..." << std::endl;
   start = std::chrono::high_resolution_clock::now();
-  if (couchbase_client.CouchbaseRemove("item::1", FLAGS_bucket)) {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cout << "Document removed successfully in " << micro_duration.count()
-              << " μs" << std::endl;
+  auto remove_response =
+      couchbase_client.CouchbaseRemove("item::1", FLAGS_bucket);
+  end = std::chrono::high_resolution_clock::now();
+  micro_duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  if (remove_response.success) {
+    std::cout << "Document removed successfully";
     operation_times.push_back({"Remove item::1", micro_duration.count()});
   } else {
-    end = std::chrono::high_resolution_clock::now();
-    auto micro_duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cerr << "Failed to remove document - took " << micro_duration.count()
-              << " μs" << std::endl;
-    operation_times.push_back(
-        {"Remove item::1 (failed)", micro_duration.count()});
+    if (remove_response.err.ec() ==
+        couchbase::errc::key_value::document_not_found) {
+      std::cerr << "Document not found for removal" << std::endl;
+    }
   }
 
   // Cleanup

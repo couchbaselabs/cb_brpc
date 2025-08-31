@@ -5,7 +5,6 @@ This repository contains example implementations demonstrating how to use the Co
 ## Table of Contents
 
 - [Overview](#overview)
-- [Files Structure](#files-structure)
 - [Couchbase Core Implementation (couchbase.cpp)](#couchbase-core-implementation-couchbasecpp)
 - [Single-Threaded Client (client.cpp)](#single-threaded-client-clientcpp)
 - [Build and Run](#build-and-run)
@@ -17,18 +16,6 @@ This example demonstrates integration of Couchbase NoSQL database with the bRPC 
 - **Connection Management**: Efficient cluster connection with scope and collection support
 - **CRUD Operations**: Complete Create, Read, Update, Delete functionality
 - **N1QL Query Support**: Cluster-level and scope-level query operations with options
-
-## Files Structure
-
-```
-example/couchbase_example/
-├── client.cpp                 # Single-threaded example demonstrating all operations
-└── README.md                  # This documentation file
-
-src/brpc/
-├── couchbase.h                # CouchbaseWrapper class declaration
-└── couchbase.cpp              # CouchbaseWrapper implementation
-```
 
 ---
 
@@ -73,7 +60,7 @@ bool CouchbaseWrapper::InitCouchbase(const std::string& connection_string,
 3. Sets `g_initialized` flag to `true`
 
 **Error Handling**:
-- Connection failures are logged with error messages
+- Connection failures are printed with error messages
 - Exception handling for SDK-level errors
 
 ### 2. `CouchbaseGet(key, bucket_name, scope, collection)`
@@ -86,11 +73,11 @@ bool CouchbaseWrapper::InitCouchbase(const std::string& connection_string,
 - `scope`: Scope name (default: "_default")
 - `collection`: Collection name (default: "_default")
 
-**Returns**: `std::pair<bool, std::string>` - Success status and document content
+**Returns**: `CouchbaseResponse` object - Contains success status, document content, and error information.
 
 **Implementation Details**:
 ```cpp
-std::pair<bool, std::string> CouchbaseWrapper::CouchbaseGet(const std::string& key, 
+CouchbaseResponse CouchbaseWrapper::CouchbaseGet(const std::string& key, 
                                                           const std::string& bucket_name,
                                                           const std::string& scope,
                                                           const std::string& collection)
@@ -101,7 +88,7 @@ std::pair<bool, std::string> CouchbaseWrapper::CouchbaseGet(const std::string& k
 2. Executes asynchronous get operation using bucket.scope.collection path
 3. Converts result to TAO JSON format
 4. Serializes JSON to string
-5. Returns success status and content
+5. Returns `CouchbaseResponse` object with success status, content, and any errors.
 
 **Error Scenarios**:
 - Uninitialized Couchbase connection
@@ -120,11 +107,11 @@ std::pair<bool, std::string> CouchbaseWrapper::CouchbaseGet(const std::string& k
 - `scope`: Scope name (default: "_default")
 - `collection`: Collection name (default: "_default")
 
-**Returns**: `bool` - `true` if operation successful, `false` otherwise
+**Returns**: `CouchbaseResponse` object - Contains success status and error information.
 
 **Implementation Details**:
 ```cpp
-bool CouchbaseWrapper::CouchbaseUpsert(const std::string& key, 
+CouchbaseResponse CouchbaseWrapper::CouchbaseUpsert(const std::string& key, 
                                      const std::string& value,
                                      const std::string& bucket_name,
                                      const std::string& scope,
@@ -134,7 +121,7 @@ bool CouchbaseWrapper::CouchbaseUpsert(const std::string& key,
 **Process Flow**:
 1. Validates initialization and parses JSON
 2. Executes asynchronous upsert operation
-3. Handles operation result and errors
+3. Handles operation result and returns `CouchbaseResponse` object.
 
 **Use Cases**:
 - Initial document creation
@@ -152,11 +139,11 @@ bool CouchbaseWrapper::CouchbaseUpsert(const std::string& key,
 - `scope`: Scope name (default: "_default")
 - `collection`: Collection name (default: "_default")
 
-**Returns**: `bool` - `true` if insertion successful, `false` if document exists or error
+**Returns**: `CouchbaseResponse` object - Contains success status and error information.
 
 **Implementation Details**:
 ```cpp
-bool CouchbaseWrapper::CouchbaseAdd(const std::string& key, 
+CouchbaseResponse CouchbaseWrapper::CouchbaseAdd(const std::string& key, 
                                   const std::string& value,
                                   const std::string& bucket_name,
                                   const std::string& scope,
@@ -174,11 +161,11 @@ bool CouchbaseWrapper::CouchbaseAdd(const std::string& key,
 - `scope`: Scope name (default: "_default")
 - `collection`: Collection name (default: "_default")
 
-**Returns**: `bool` - `true` if deletion successful, `false` otherwise
+**Returns**: `CouchbaseResponse` object - Contains success status and error information.
 
 **Implementation Details**:
 ```cpp
-bool CouchbaseWrapper::CouchbaseRemove(const std::string& key,
+CouchbaseResponse CouchbaseWrapper::CouchbaseRemove(const std::string& key,
                                      const std::string& bucket_name,
                                      const std::string& scope,
                                      const std::string& collection)
@@ -187,7 +174,7 @@ bool CouchbaseWrapper::CouchbaseRemove(const std::string& key,
 **Process Flow**:
 1. Validates initialization
 2. Executes asynchronous remove operation
-3. Handles success/failure scenarios
+3. Handles success/failure scenarios and returns `CouchbaseResponse` object.
 
 ### 6. Query Operations
 
@@ -196,20 +183,20 @@ The class provides four query methods for different use cases:
 #### 6.1 `Query(statement)`
 **Purpose**: Execute N1QL query at cluster level without options.
 ```cpp
-std::pair<bool, std::vector<std::string>> Query(std::string statement)
+CouchbaseQueryResponse Query(std::string statement)
 ```
 
 #### 6.2 `Query(statement, query_options)`
 **Purpose**: Execute N1QL query at cluster level with query options.
 ```cpp
-std::pair<bool, std::vector<std::string>> Query(std::string statement, 
+CouchbaseResponse Query(std::string statement, 
                                                couchbase::query_options& q_opts)
 ```
 
 #### 6.3 `Query(statement, bucket_name, scope_name)`
 **Purpose**: Execute N1QL query at scope level without options.
 ```cpp
-std::pair<bool, std::vector<std::string>> Query(std::string statement, 
+CouchbaseResponse Query(std::string statement, 
                                                const std::string& bucket_name, 
                                                const std::string& scope_name)
 ```
@@ -217,7 +204,7 @@ std::pair<bool, std::vector<std::string>> Query(std::string statement,
 #### 6.4 `Query(statement, bucket_name, scope_name, query_options)`
 **Purpose**: Execute N1QL query at scope level with query options.
 ```cpp
-std::pair<bool, std::vector<std::string>> Query(std::string statement, 
+CouchbaseResponse Query(std::string statement, 
                                                const std::string& bucket_name, 
                                                const std::string& scope_name, 
                                                couchbase::query_options& q_opts)
@@ -226,7 +213,7 @@ std::pair<bool, std::vector<std::string>> Query(std::string statement,
 **Query Features**:
 - Cluster-level and scope-level query execution
 - Support for query options
-- returns a pair of boolean and string, indicating query status and the query result
+- returns a `CouchbaseQueryResponse` object, indicating query status and the query result as a vector of strings.
 
 ### 7. `CloseCouchbase()`
 
@@ -275,7 +262,8 @@ if (!couchbase_client.InitCouchbase(connection_string, FLAGS_username, FLAGS_pas
 
 ```cpp
 std::string user_data = R"({"name": "John Doe", "age": 30, "email": "john@example.com"})";
-if (couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket))
+auto add_response = couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket);
+if (add_response.success)
 ```
 
 **Purpose**: Tests document insertion with Add operation
@@ -284,7 +272,14 @@ if (couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket))
 ### Example 2. Document Addition (Duplicate Test)
 
 ```cpp
-if (couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket))
+auto add_response = couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket);
+if (add_response.success) {
+    // ...
+} else {
+    if(add_response.err.ec() == couchbase::errc::key_value::document_exists) {
+      std::cerr << "Document already exists" << std::endl;
+    }
+}
 ```
 
 **Purpose**: Validates Add operation's uniqueness constraint
@@ -295,7 +290,8 @@ if (couchbase_client.CouchbaseAdd("user::john_doe", user_data, FLAGS_bucket))
 
 ```cpp
 std::string updated_user_data = R"({"name": "John Doe", "age": 31, "email": "john.doe@example.com", "updated": true})";
-if (couchbase_client.CouchbaseUpsert("user::john_doe", updated_user_data, FLAGS_bucket))
+auto upsert_response = couchbase_client.CouchbaseUpsert("user::john_doe", updated_user_data, FLAGS_bucket);
+if (upsert_response.success)
 ```
 
 **Purpose**: Updates existing document with new data
@@ -305,8 +301,8 @@ if (couchbase_client.CouchbaseUpsert("user::john_doe", updated_user_data, FLAGS_
 ### Example 4. Document Retrieval
 
 ```cpp
-auto [success, retrieved_data] = couchbase_client.CouchbaseGet("user::john_doe", FLAGS_bucket);
-if (success && !retrieved_data.empty())
+auto get_response = couchbase_client.CouchbaseGet("user::john_doe", FLAGS_bucket);
+if (get_response.success && !get_response.data.empty())
 ```
 
 **Purpose**: Verifies document content after update
@@ -319,7 +315,11 @@ Tests ADD function with fallback to upsert strategy:
 ```cpp
 for (int i = 1; i <= 3; i++) {
     std::string key = "item::" + std::to_string(i);
-    // Try Add first, fallback to Upsert if needed
+    auto add_response = couchbase_client.CouchbaseAdd(key, value, FLAGS_bucket);
+    if (!add_response.success) {
+        // Try Upsert if Add fails
+        couchbase_client.CouchbaseUpsert(key, value, FLAGS_bucket);
+    }
 }
 ```
 
@@ -331,7 +331,10 @@ for (int i = 1; i <= 3; i++) {
 #### Query 1: Select All Documents
 ```cpp
 std::string select_all_query = "SELECT META().id, * FROM `" + FLAGS_bucket + "` WHERE META().id LIKE 'user::%' OR META().id LIKE 'item::%'";
-auto [query_success1, query_results1] = couchbase_client.Query(select_all_query);
+auto query_response = couchbase_client.Query(select_all_query);
+if (query_response.success) {
+    // ...
+}
 ```
 
 **Purpose**: Retrieves all documents matching specific key patterns
@@ -341,7 +344,10 @@ auto [query_success1, query_results1] = couchbase_client.Query(select_all_query)
 #### Query 2: Scoped Query with Explicit Bucket and Scope
 ```cpp
 std::string scoped_query = "SELECT META().id, email FROM _default WHERE email LIKE '%@%'";
-auto [query_success6, query_results6] = couchbase_client.Query(scoped_query, FLAGS_bucket, "_default");
+auto query_response = couchbase_client.Query(scoped_query, FLAGS_bucket, "_default");
+if (query_response.success) {
+    // ...
+}
 ```
 
 **Purpose**: Demonstrates scope-level query execution
@@ -365,7 +371,10 @@ const std::vector<std::string> param = {"john"};
 for(const auto& p : param) {
     opts.add_positional_parameter(p);
 }
-auto [query_success7, query_results7] = couchbase_client.Query(scoped_parameterized_query, FLAGS_bucket, "_default", opts);
+auto query_response = couchbase_client.Query(scoped_parameterized_query, FLAGS_bucket, "_default", opts);
+if (query_response.success) {
+    // ...
+}
 ```
 
 **Features Demonstrated**:
@@ -376,7 +385,8 @@ auto [query_success7, query_results7] = couchbase_client.Query(scoped_parameteri
 ### Example 7. Document Removal
 
 ```cpp
-if (couchbase_client.CouchbaseRemove("item::1", FLAGS_bucket))
+auto remove_response = couchbase_client.CouchbaseRemove("item::1", FLAGS_bucket);
+if (remove_response.success)
 ```
 
 **Purpose**: Demonstrates document deletion

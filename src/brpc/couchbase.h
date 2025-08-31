@@ -7,6 +7,25 @@
 
 namespace brpc {
 
+class CouchbaseResponse {
+ public:
+  bool success;
+  std::string data;
+  couchbase::error err;
+
+  CouchbaseResponse(bool success, const std::string& data, couchbase::error err)
+      : success(success), data(data), err(err) {}
+};
+class CouchbaseQueryResponse {
+ public:
+  bool success;
+  std::vector<std::string> result;
+  couchbase::error err;
+
+  CouchbaseQueryResponse(bool success, const std::vector<std::string>& result,
+                         couchbase::error err)
+      : success(success), result(result), err(err) {}
+};
 class CouchbaseWrapper {
  public:
   CouchbaseWrapper() = default;
@@ -16,41 +35,45 @@ class CouchbaseWrapper {
                      const std::string& username, const std::string& password);
 
   // Get document by key
-  std::pair<bool, std::string> CouchbaseGet(
-      const std::string& key, const std::string& bucket_name,
-      const std::string& scope = "_default",
-      const std::string& collection = "_default");
+  CouchbaseResponse CouchbaseGet(const std::string& key,
+                                 const std::string& bucket_name,
+                                 const std::string& scope = "_default",
+                                 const std::string& collection = "_default");
 
   // Upsert (insert/update) document
-  bool CouchbaseUpsert(const std::string& key, const std::string& value,
-                       const std::string& bucket_name,
-                       const std::string& scope = "_default",
-                       const std::string& collection = "_default");
+  CouchbaseResponse CouchbaseUpsert(const std::string& key,
+                                    const std::string& value,
+                                    const std::string& bucket_name,
+                                    const std::string& scope = "_default",
+                                    const std::string& collection = "_default");
 
   // Add document (insert only, fails if document already exists)
-  bool CouchbaseAdd(const std::string& key, const std::string& value,
-                    const std::string& bucket_name,
-                    const std::string& scope = "_default",
-                    const std::string& collection = "_default");
+  CouchbaseResponse CouchbaseAdd(const std::string& key,
+                                 const std::string& value,
+                                 const std::string& bucket_name,
+                                 const std::string& scope = "_default",
+                                 const std::string& collection = "_default");
 
   // Remove document
-  bool CouchbaseRemove(const std::string& key, const std::string& bucket_name,
-                       const std::string& scope = "_default",
-                       const std::string& collection = "_default");
+  CouchbaseResponse CouchbaseRemove(const std::string& key,
+                                    const std::string& bucket_name,
+                                    const std::string& scope = "_default",
+                                    const std::string& collection = "_default");
 
   // Close Couchbase connection (call at shutdown)
   void CloseCouchbase();
 
   // query helper functions
-  std::pair<bool, std::vector<std::string>> Query(std::string statement);
-  std::pair<bool, std::vector<std::string>> Query(
-      std::string statement, couchbase::query_options& q_opts);
-  std::pair<bool, std::vector<std::string>> Query(
-      std::string statement, const std::string& bucket_name,
-      const std::string& scope = "_default");
-  std::pair<bool, std::vector<std::string>> Query(
-      std::string statement, const std::string& bucket_name,
-      const std::string& scope, couchbase::query_options& q_opts);
+  CouchbaseQueryResponse Query(std::string statement);
+  CouchbaseQueryResponse Query(std::string statement,
+                               couchbase::query_options& q_opts);
+  CouchbaseQueryResponse Query(std::string statement,
+                               const std::string& bucket_name,
+                               const std::string& scope = "_default");
+  CouchbaseQueryResponse Query(std::string statement,
+                               const std::string& bucket_name,
+                               const std::string& scope,
+                               couchbase::query_options& q_opts);
 
  private:
   std::optional<couchbase::cluster> g_cluster;

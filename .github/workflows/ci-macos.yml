@@ -24,6 +24,7 @@ jobs:
       run: |
            brew install protobuf
            brew install openssl gnu-getopt coreutils gflags leveldb pegtl
+           brew uninstall cmake
            brew tap couchbaselabs/homebrew-couchbase
            brew install couchbase-cxx-client
 
@@ -53,6 +54,10 @@ jobs:
           # protobuf 23.3
           curl -o protobuf.rb https://raw.githubusercontent.com/Homebrew/homebrew-core/b85b8dbf23ad509f163677a88ac72268f31e9c4a/Formula/protobuf.rb
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install --formula --ignore-dependencies ./abseil.rb ./protobuf.rb
+          brew uninstall cmake
+          brew tap couchbaselabs/homebrew-couchbase
+          brew install couchbase-cxx-client
+
 
       - name: compile with make
         run: |

@@ -22,7 +22,11 @@ jobs:
     
     - name: install dependences
       run: |
-           brew install openssl gnu-getopt coreutils gflags leveldb protobuf@21
+           brew install protobuf
+           brew install openssl gnu-getopt coreutils gflags leveldb pegtl
+           brew uninstall cmake
+           brew tap couchbaselabs/homebrew-couchbase
+           brew install couchbase-cxx-client
 
     - name: compile with make
       run: |
@@ -45,7 +49,16 @@ jobs:
 
       - name: install dependences
         run: |
-          brew install openssl gnu-getopt coreutils gflags leveldb protobuf@29
+          brew install openssl gnu-getopt coreutils gflags leveldb
+          # abseil 20230125.3
+          curl -o abseil.rb   https://raw.githubusercontent.com/Homebrew/homebrew-core/b85b8dbf23ad509f163677a88ac72268f31e9c4a/Formula/abseil.rb
+          # protobuf 23.3
+          curl -o protobuf.rb https://raw.githubusercontent.com/Homebrew/homebrew-core/b85b8dbf23ad509f163677a88ac72268f31e9c4a/Formula/protobuf.rb
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1 brew install --formula --ignore-dependencies ./abseil.rb ./protobuf.rb
+          brew uninstall cmake
+          brew tap couchbaselabs/homebrew-couchbase
+          brew install couchbase-cxx-client
+
 
       - name: compile with make
         run: |

@@ -20,6 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: ./.github/actions/install-all-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
 
     - name: gcc with default options
       uses: ./.github/actions/compile-with-make
@@ -78,6 +79,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: ./.github/actions/install-essential-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
 
     - name: protobuf 3.5.1
       uses: ./.github/actions/compile-with-make-protobuf
@@ -126,6 +128,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: ./.github/actions/install-essential-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
 
     - name: protobuf 3.5.1
       uses: ./.github/actions/compile-with-make-protobuf

@@ -117,8 +117,18 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 find_package(GFLAGS REQUIRED)
 
-find_package(fmt REQUIRED)
-find_package(couchbase_cxx_client REQUIRED)
+#add couchbase_cxx_client
+CPMAddPackage(
+  NAME
+  couchbase_cxx_client
+  GIT_TAG
+  1.1.0
+  VERSION
+  1.1.0
+  GITHUB_REPOSITORY
+  "couchbase/couchbase-cxx-client"
+  OPTIONS
+  "COUCHBASE_CXX_CLIENT_STATIC_BORINGSSL ON")
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/src

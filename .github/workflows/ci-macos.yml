@@ -22,8 +22,10 @@ jobs:
     
     - name: install dependences
       run: |
-           brew install ./homebrew-formula/protobuf.rb 
-           brew install openssl gnu-getopt coreutils gflags leveldb
+           brew install protobuf
+           brew install openssl gnu-getopt coreutils gflags leveldb pegtl
+           brew tap couchbaselabs/homebrew-couchbase
+           brew install couchbase-cxx-client
 
     - name: compile with make
       run: |

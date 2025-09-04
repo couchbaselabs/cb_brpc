@@ -16,16 +16,7 @@ Make sure you have these installed:
 sudo apt update
 sudo apt install -y g++ cmake make git libssl-dev zlib1g-dev libsnappy-dev libevent-dev libcurl4-openssl-dev
 ```
-#### Install couchbase c++ sdk:-
-```bash
-git clone https://github.com/couchbase/couchbase-cxx-client.git
-cd couchbase-cxx-client
-echo -e '\ninstall(DIRECTORY couchbase/ DESTINATION include/couchbase)\ninstall(TARGETS couchbase_cxx_client DESTINATION lib)' | sudo tee -a CMakeLists.txt
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
-make
-sudo make install
-```
+
 #### Install fmt library:-
 ```bash
 git clone https://github.com/fmtlib/fmt.git
@@ -35,11 +26,34 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE
 make
 sudo make install
 ```
-#### get JSON libraries
+
+#### INSTALL PGETL libraries
+```bash
+git clone https://github.com/taocpp/PEGTL.git
+cd PEGTL
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+sudo make install
+```
+
+#### Get JSON libraries
 ```bash
 git clone https://github.com/taocpp/json.git
 cd json/include
 sudo cp -dr tao /usr/include
+```
+
+
+#### Install couchbase c++ sdk:-
+```bash
+git clone https://github.com/couchbase/couchbase-cxx-client.git
+cd couchbase-cxx-client
+echo -e '\ninstall(DIRECTORY couchbase/ DESTINATION include/couchbase)\ninstall(TARGETS couchbase_cxx_client DESTINATION lib)' | sudo tee -a CMakeLists.txt
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+make
+sudo make install
 ```
 
 ### On MacOS

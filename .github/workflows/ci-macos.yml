@@ -14,7 +14,7 @@ env:
   proc_num: $(sysctl -n hw.logicalcpu)
 
 jobs:
-  compile:
+  compile-with-make-cmake-protobuf21:
     runs-on: macos-latest # https://github.com/actions/runner-images
 
     steps:
@@ -37,10 +37,11 @@ jobs:
 
     - name: compile with cmake
       run: |
-        mkdir build && cd build && cmake ..
+        echo "CMAKE_PREFIX_PATH=$(brew --prefix protobuf@21)"
+        mkdir build && cd build && cmake -DCMAKE_PREFIX_PATH=$(brew --prefix protobuf@21) ..
         make -j ${{env.proc_num}} && make clean
 
-  compile-with-make-protobuf23:
+  compile-with-make-cmake-protobuf29:
     runs-on: macos-latest # https://github.com/actions/runner-images
 
     steps:
@@ -66,7 +67,14 @@ jobs:
            ./config_brpc.sh --header="$(brew --prefix)/include" --libs="$(brew --prefix)/lib"
           make -j ${{env.proc_num}} && make clean
 
-      - name: compile with make
+      - name: compile with cmake
         run: |
-          mkdir build && cd build && cmake ..
+          mkdir build && cd build && cmake -DCMAKE_PREFIX_PATH=$(brew --prefix protobuf@29) ..
           make -j ${{env.proc_num}} && make clean
+
+  compile-with-bazel:
+    runs-on: macos-latest # https://github.com/actions/runner-images
+
+    steps:
+      - uses: actions/checkout@v2
+      - run: bazel build --verbose_failures -- //:brpc -//example/...

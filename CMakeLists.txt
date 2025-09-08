@@ -125,6 +125,11 @@ if(NOT EXISTS ${CPM_DOWNLOAD_LOCATION})
 endif()
 include(${CPM_DOWNLOAD_LOCATION})
 
+# Set couchbase-cxx-client options before adding the package
+set(COUCHBASE_CXX_CLIENT_STATIC_BORINGSSL OFF)
+set(COUCHBASE_CXX_CLIENT_BUILD_SHARED ON)
+set(COUCHBASE_CXX_CLIENT_BUILD_STATIC OFF)
+
 #add couchbase_cxx_client
 CPMAddPackage(
   NAME
@@ -134,9 +139,7 @@ CPMAddPackage(
   VERSION
   1.1.0
   GITHUB_REPOSITORY
-  "couchbase/couchbase-cxx-client"
-  OPTIONS
-  "COUCHBASE_CXX_CLIENT_STATIC_BORINGSSL ON")
+  "couchbase/couchbase-cxx-client")
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/src

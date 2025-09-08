@@ -77,4 +77,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: install dependences
+        run: |
+          brew install bazelisk
+          brew install openssl gnu-getopt coreutils gflags leveldb pegtl
+          brew uninstall cmake
+          brew tap couchbaselabs/homebrew-couchbase
+          brew install couchbase-cxx-client
       - run: bazel build --verbose_failures -- //:brpc -//example/...

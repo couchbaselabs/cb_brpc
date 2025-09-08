@@ -109,18 +109,24 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - uses: ./.github/actions/install-essential-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
     - run: bazel build --verbose_failures -- //... -//example/...
 
   gcc-compile-with-boringssl:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - uses: ./.github/actions/install-essential-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
     - run: bazel build --verbose_failures --define with_mesalink=false --define with_glog=true --define with_thrift=true --define BRPC_WITH_BORINGSSL=true -- //... -//example/...
 
   gcc-compile-with-bazel-all-options:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - uses: ./.github/actions/install-essential-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
     - run: bazel build --verbose_failures --define with_mesalink=false --define with_glog=true --define with_thrift=true --define with_debug_bthread_sche_safety=true --define with_debug_lock=true --define with_asan=true -- //... -//example/...
 
   clang-compile-with-make-protobuf:
@@ -158,12 +164,16 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - uses: ./.github/actions/install-essential-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
     - run: bazel build --verbose_failures --action_env=CC=clang -- //... -//example/...
 
   clang-compile-with-boringssl:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - uses: ./.github/actions/install-essential-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
     - run: bazel build --verbose_failures --action_env=CC=clang --define with_mesalink=false --define with_glog=true --define with_thrift=true --define BRPC_WITH_BORINGSSL=true -- //... -//example/...
 
   clang-compile-with-bazel-all-options:

@@ -27,6 +27,7 @@ namespace brpc {
 class CouchbaseResponse {
  public:
   bool success;
+  //change it to vector, std::vector<std::string> data;
   std::string data;
   couchbase::error err;
 

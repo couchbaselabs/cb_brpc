@@ -311,6 +311,17 @@ objc_library(
     }),
 )
 
+# Couchbase SDK headers library with platform-specific include paths
+cc_library(
+    name = "couchbase_headers",
+    hdrs = [],
+    includes = select({
+        "@bazel_tools//src/conditions:darwin": ["/opt/homebrew/include"],
+        "//conditions:default": ["/bin/include"],
+    }),
+    visibility = ["//visibility:public"],
+)
+
 cc_library(
     name = "butil",
     srcs = BUTIL_SRCS,
@@ -556,6 +567,7 @@ cc_library(
         ":bvar",
         ":json2pb",
         ":mcpack2pb",
+        ":couchbase_headers",
         "@com_github_google_leveldb//:leveldb",
     ] + select({
         "//bazel/config:brpc_with_thrift": [
@@ -578,3 +590,5 @@ cc_binary(
         ":brpc_idl_options_cc_proto",
     ],
 )
+
+

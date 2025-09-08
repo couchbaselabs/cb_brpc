@@ -47,6 +47,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: ./.github/actions/install-all-dependencies
+    - uses: ./.github/actions/install-couchbase-cxx-client
 
     - name: gcc with default options
       run: |

@@ -1,10 +1,11 @@
+module(
+    name = 'brpc',
+    version = '1.14.1',
+    compatibility_level = 1,
+)
+
 # Add rules_python for Bazel Python rules support
 bazel_dep(name = "rules_python", version = "0.31.0")
-module(
-  name = 'brpc',
-  version = '1.14.1',
-  compatibility_level = 1,
-)
 
 # --registry=https://bcr.bazel.build
 bazel_dep(name = 'abseil-cpp', version = '20210324.2', repo_name = 'com_google_absl')

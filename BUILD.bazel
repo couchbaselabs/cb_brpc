@@ -317,7 +317,7 @@ cc_library(
     hdrs = [],
     includes = select({
         "@bazel_tools//src/conditions:darwin": ["/opt/homebrew/include"],
-        "//conditions:default": ["/bin/include"],
+        "//conditions:default": ["/usr/include"],
     }),
     visibility = ["//visibility:public"],
 )
@@ -567,7 +567,9 @@ cc_library(
         ":bvar",
         ":json2pb",
         ":mcpack2pb",
-        ":couchbase_headers",
+        "@couchbase_cxx_client//:couchbase",
+        "@fmt_headers//:fmt",
+        "@tao_json_headers//:tao_json",
         "@com_github_google_leveldb//:leveldb",
     ] + select({
         "//bazel/config:brpc_with_thrift": [

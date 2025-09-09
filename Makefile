@@ -54,6 +54,17 @@ else
     DYNAMIC_LINKINGS += $(FMT_LIBS)
 endif
 
+# Couchbase C++ SDK linking
+ifeq ($(SYSTEM),Darwin)
+    # Homebrew installs libcouchbase_cxx_client under /opt/homebrew/lib
+    LIBPATHS += -L/opt/homebrew/lib
+    DYNAMIC_LINKINGS += -lcouchbase_cxx_client
+else
+    # Try pkg-config first; fallback to plain -l
+    CB_FLAGS := $(shell pkg-config --libs couchbase-cxx-client 2>/dev/null || echo "-lcouchbase_cxx_client")
+    DYNAMIC_LINKINGS += $(CB_FLAGS)
+endif
+
 SOEXT = so
 ifeq ($(SYSTEM),Darwin)
     SOEXT = dylib

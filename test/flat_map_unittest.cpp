@@ -19,6 +19,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <map>
+#include <algorithm>
+#include <random>
 #include <unordered_map>
 #include <vector>
 #include "butil/time.h"
@@ -874,7 +876,10 @@ TEST_F(FlatMapTest, perf_cmp_with_map_storing_pointers) {
     ASSERT_EQ(m1.size(), m2.size());
     ASSERT_EQ(m1.size(), m3.size());
 
-    std::random_shuffle(r.begin(), r.end());
+    {
+        std::mt19937 rng(std::random_device{}());
+        std::shuffle(r.begin(), r.end(), rng);
+    }
 
     sum = 0;
     tm.start();
@@ -1253,7 +1258,8 @@ void perf_insert_erase(bool random, const T& value) {
         }
 
         if (random) {
-            random_shuffle(keys.begin(), keys.end());
+            std::mt19937 rng(std::random_device{}());
+            std::shuffle(keys.begin(), keys.end(), rng);
         }
 
         id_map.clear();
@@ -1318,7 +1324,8 @@ void perf_insert_erase(bool random, const T& value) {
                   << "/" << hash_tm.n_elapsed() / keys.size();
         
         if (random) {
-            random_shuffle(keys.begin(), keys.end());
+            std::mt19937 rng(std::random_device{}());
+            std::shuffle(keys.begin(), keys.end(), rng);
         }
         
         id_tm.start();
@@ -1438,7 +1445,10 @@ void perf_seek(const T& value) {
             hash_map[keys[i]] = value;
         }
         
-        random_shuffle(keys.begin(), keys.end());
+        {
+            std::mt19937 rng(std::random_device{}());
+            std::shuffle(keys.begin(), keys.end(), rng);
+        }
         
         long sum = 0;
         id_tm.start();

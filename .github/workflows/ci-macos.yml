@@ -49,7 +49,7 @@ jobs:
 
       - name: install dependences
         run: |
-          brew install openssl gnu-getopt coreutils gflags leveldb abseil fmt snappy openssl@3 protobuf@29z
+          brew install openssl gnu-getopt coreutils gflags leveldb abseil fmt snappy openssl@3 protobuf@29
           brew uninstall cmake
           brew tap couchbaselabs/homebrew-couchbase
           brew install couchbase-cxx-client

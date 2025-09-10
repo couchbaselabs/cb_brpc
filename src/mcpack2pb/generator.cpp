@@ -31,9 +31,16 @@
 
 namespace mcpack2pb {
 
-const std::string& get_idl_name(const google::protobuf::FieldDescriptor* f) {
+// Convert string_view-like objects (including absl::string_view) to std::string
+template <typename SV>
+static inline std::string sv_to_string(const SV& sv) {
+    return std::string(sv.data(), sv.size());
+}
+
+// Return by value to be compatible across protobuf versions (string vs string_view)
+static inline std::string get_idl_name(const google::protobuf::FieldDescriptor* f) {
     const std::string& real_name = f->options().GetExtension(idl_name);
-    return real_name.empty() ? f->name() : real_name;
+    return real_name.empty() ? sv_to_string(f->name()) : real_name;
 }
 
 bool is_integral_type(ConvertibleIdlType type) {
@@ -53,6 +60,7 @@ bool is_integral_type(ConvertibleIdlType type) {
 }
 
 const char* field_to_string(const google::protobuf::FieldDescriptor* f) {
+    static thread_local std::string scratch;
     switch (f->type()) {
     case google::protobuf::FieldDescriptor::TYPE_DOUBLE:   return "double";
     case google::protobuf::FieldDescriptor::TYPE_FLOAT:    return "float";
@@ -65,11 +73,13 @@ const char* field_to_string(const google::protobuf::FieldDescriptor* f) {
     case google::protobuf::FieldDescriptor::TYPE_STRING:   return "string";
     case google::protobuf::FieldDescriptor::TYPE_GROUP:
     case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
-        return f->message_type()->name().c_str();
+        scratch = sv_to_string(f->message_type()->name());
+        return scratch.c_str();
     case google::protobuf::FieldDescriptor::TYPE_BYTES:    return "bytes";
     case google::protobuf::FieldDescriptor::TYPE_UINT32:   return "uint32";
     case google::protobuf::FieldDescriptor::TYPE_ENUM:
-        return f->enum_type()->name().c_str();
+        scratch = sv_to_string(f->enum_type()->name());
+        return scratch.c_str();
     case google::protobuf::FieldDescriptor::TYPE_SFIXED32: return "sfixed32";
     case google::protobuf::FieldDescriptor::TYPE_SFIXED64: return "sfixed64";
     case google::protobuf::FieldDescriptor::TYPE_SINT32:   return "sint32";
@@ -177,6 +187,17 @@ static std::string to_cpp_name(const std::string& full_name) {
         }
     }
     return cname;
+}
+
+// Overloads for string_view-like inputs
+template <typename SV>
+static std::string to_var_name(const SV& name) {
+    return to_var_name(sv_to_string(name));
+}
+
+template <typename SV>
+static std::string to_cpp_name(const SV& full_name) {
+    return to_cpp_name(sv_to_string(full_name));
 }
 
 bool generate_declarations(const std::set<std::string>& ref_msgs,
@@ -1091,7 +1112,7 @@ static bool generate_serializing(const google::protobuf::Descriptor* d,
                         }
                     } else if (f2->is_repeated()) {
                         const std::string msgstr = butil::string_printf(
-                            "msg.%s(i)", f->lowercase_name().c_str());
+                            "msg.%s(i)", sv_to_string(f->lowercase_name()).c_str());
                         switch (f2->cpp_type()) {
                         case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
                         case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
@@ -1141,7 +1162,7 @@ static bool generate_serializing(const google::protobuf::Descriptor* d,
                         }
                     } else {
                         const std::string msgstr = butil::string_printf(
-                            "msg.%s(i)", f->lowercase_name().c_str());
+                            "msg.%s(i)", sv_to_string(f->lowercase_name()).c_str());
                         switch (f2->cpp_type()) {
                         case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
                         case google::protobuf::FieldDescriptor::CPPTYPE_INT64:

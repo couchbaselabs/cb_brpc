@@ -22,19 +22,29 @@ jobs:
     
     - name: install dependences
       run: |
-           brew install openssl gnu-getopt coreutils gflags leveldb protobuf@21
+           brew install protobuf@21
+           brew install openssl gnu-getopt coreutils gflags leveldb abseil fmt snappy openssl@3
+           brew uninstall cmake
+           brew tap couchbaselabs/homebrew-couchbase
+           brew install couchbase-cxx-client
 
     - name: compile with make
       run: |
-        GETOPT_PATH=$(brew --prefix gnu-getopt)/bin
-        export PATH=$GETOPT_PATH:$PATH
-        ./config_brpc.sh --header="$(brew --prefix)/include" --libs="$(brew --prefix)/lib"
-        make -j ${{env.proc_num}} && make clean
+          GETOPT_PATH=$(brew --prefix gnu-getopt)/bin
+          export PATH=$GETOPT_PATH:$PATH
+          PROTO_PREFIX=$(brew --prefix protobuf@29)
+          ABSL_PREFIX=$(brew --prefix abseil)
+          BREW_PREFIX=$(brew --prefix)
+
+          ./config_brpc.sh \
+            --headers="$PROTO_PREFIX/include $ABSL_PREFIX/include $BREW_PREFIX/include" \
+            --libs="$PROTO_PREFIX/lib $ABSL_PREFIX/lib $BREW_PREFIX/lib"
+          make -j ${{env.proc_num}} && make clean
 
     - name: compile with cmake
       run: |
         echo "CMAKE_PREFIX_PATH=$(brew --prefix protobuf@21)"
-        mkdir build && cd build && cmake -DCMAKE_PREFIX_PATH=$(brew --prefix protobuf@21) ..
+        mkdir build && cd build && cmake -DCMAKE_PREFIX_PATH=$(brew --prefix protobuf@21) -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
         make -j ${{env.proc_num}} && make clean
 
   compile-with-make-cmake-protobuf29:
@@ -45,18 +55,28 @@ jobs:
 
       - name: install dependences
         run: |
-          brew install openssl gnu-getopt coreutils gflags leveldb protobuf@29
+          brew install openssl gnu-getopt coreutils gflags leveldb abseil fmt snappy openssl@3 protobuf@29
+          brew uninstall cmake
+          brew tap couchbaselabs/homebrew-couchbase
+          brew install couchbase-cxx-client
+
 
       - name: compile with make
         run: |
           GETOPT_PATH=$(brew --prefix gnu-getopt)/bin
           export PATH=$GETOPT_PATH:$PATH
-           ./config_brpc.sh --header="$(brew --prefix)/include" --libs="$(brew --prefix)/lib"
+          PROTO_PREFIX=$(brew --prefix protobuf@29)
+          ABSL_PREFIX=$(brew --prefix abseil)
+          BREW_PREFIX=$(brew --prefix)
+
+          ./config_brpc.sh \
+            --headers="$PROTO_PREFIX/include $ABSL_PREFIX/include $BREW_PREFIX/include" \
+            --libs="$PROTO_PREFIX/lib $ABSL_PREFIX/lib $BREW_PREFIX/lib"
           make -j ${{env.proc_num}} && make clean
 
       - name: compile with cmake
         run: |
-          mkdir build && cd build && cmake -DCMAKE_PREFIX_PATH=$(brew --prefix protobuf@29) ..
+          mkdir build && cd build && cmake -DCMAKE_PREFIX_PATH=$(brew --prefix protobuf@29) -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           make -j ${{env.proc_num}} && make clean
 
   compile-with-bazel:
@@ -64,4 +84,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: install dependences
+        run: |
+          brew install bazelisk
+          brew install openssl gnu-getopt coreutils gflags leveldb pegtl fmt
+          brew uninstall cmake
+          brew tap couchbaselabs/homebrew-couchbase
+          brew install couchbase-cxx-client
       - run: bazel build --verbose_failures -- //:brpc -//example/...

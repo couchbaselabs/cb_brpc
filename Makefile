@@ -23,7 +23,7 @@ include config.mk
 # 2. Removed -Werror: Not block compilation for non-vital warnings, especially when the
 #    code is tested on newer systems. If the code is used in production, config `config_brpc.sh -werror'.
 CPPFLAGS+=-DBTHREAD_USE_FAST_PTHREAD_MUTEX -D_GNU_SOURCE -DUSE_SYMBOLIZE -DNO_TCMALLOC -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -DNDEBUG -DBRPC_REVISION=\"$(shell ./tools/get_brpc_revision.sh .)\"
-CXXFLAGS+=$(CPPFLAGS) -O2 -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-invalid-offsetof -Wno-unused-parameter -fno-omit-frame-pointer -Wno-deprecated-declarations -Wno-unused-but-set-variable
+CXXFLAGS+=$(CPPFLAGS) -O2 -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-invalid-offsetof -Wno-unused-parameter -fno-omit-frame-pointer -Wno-deprecated-declarations -Wno-unused-but-set-variable -std=c++17
 CFLAGS=$(CPPFLAGS) -O2 -pipe -Wall -W -fPIC -fstrict-aliasing -Wno-unused-parameter -fno-omit-frame-pointer -Wno-deprecated-declarations -Wno-unused-but-set-variable
 DEBUG_CXXFLAGS = $(filter-out -DNDEBUG,$(CXXFLAGS)) -DUNIT_TEST -DBVAR_NOT_LINK_DEFAULT_VARIABLES
 DEBUG_CFLAGS = $(filter-out -DNDEBUG,$(CFLAGS)) -DUNIT_TEST
@@ -32,6 +32,38 @@ LIBPATHS = $(addprefix -L, $(LIBS))
 COMMA = ,
 SOPATHS = $(addprefix -Wl$(COMMA)-rpath$(COMMA), $(LIBS))
 SRCEXTS = .c .cc .cpp .proto
+
+# fmtlib support - cross-platform detection
+ifeq ($(SYSTEM),Darwin)
+    # macOS: Try Homebrew paths in order of preference
+    ifneq ($(wildcard /opt/homebrew/opt/fmt/include),)
+        CXXFLAGS += -I/opt/homebrew/opt/fmt/include
+        LIBPATHS += -L/opt/homebrew/opt/fmt/lib
+    else ifneq ($(wildcard /usr/local/opt/fmt/include),)
+        CXXFLAGS += -I/usr/local/opt/fmt/include
+        LIBPATHS += -L/usr/local/opt/fmt/lib
+    endif
+    DYNAMIC_LINKINGS += -lfmt
+else
+    # Linux: Use pkg-config if available, otherwise fallback to system paths
+    FMT_CFLAGS := $(shell pkg-config --cflags fmt 2>/dev/null || echo "")
+    FMT_LIBS := $(shell pkg-config --libs fmt 2>/dev/null || echo "-lfmt")
+    ifneq ($(FMT_CFLAGS),)
+        CXXFLAGS += $(FMT_CFLAGS)
+    endif
+    DYNAMIC_LINKINGS += $(FMT_LIBS)
+endif
+
+# Couchbase C++ SDK linking
+ifeq ($(SYSTEM),Darwin)
+    # Homebrew installs libcouchbase_cxx_client under /opt/homebrew/lib
+    LIBPATHS += -L/opt/homebrew/lib
+    DYNAMIC_LINKINGS += -lcouchbase_cxx_client
+else
+    # Try pkg-config first; fallback to plain -l
+    CB_FLAGS := $(shell pkg-config --libs couchbase-cxx-client 2>/dev/null || echo "-lcouchbase_cxx_client")
+    DYNAMIC_LINKINGS += $(CB_FLAGS)
+endif
 
 SOEXT = so
 ifeq ($(SYSTEM),Darwin)

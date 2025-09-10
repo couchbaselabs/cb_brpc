@@ -5,3 +5,22 @@ runs:
       shell: bash
     - run: sudo apt-get install -y git g++ make libssl-dev libgflags-dev libprotobuf-dev libprotoc-dev protobuf-compiler libleveldb-dev
       shell: bash
+    - run: |
+        git clone https://github.com/fmtlib/fmt.git && cd fmt
+        mkdir build && cd build
+        cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=TRUE .. 
+        make -j ${{env.proc_num}} && sudo make install
+      shell: bash
+    - run: |
+        git clone https://github.com/taocpp/PEGTL.git
+        cd PEGTL
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make -j ${{env.proc_num}}
+        sudo make install
+      shell: bash
+    - run: |
+        git clone https://github.com/taocpp/json.git
+        cd json/include
+        sudo cp -dr tao /usr/include
+      shell: bash

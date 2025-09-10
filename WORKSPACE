@@ -300,3 +300,17 @@ http_archive(
 )
 load("@hedron_compile_commands//:workspace_setup.bzl", "hedron_compile_commands_setup")
 hedron_compile_commands_setup()
+
+# Expose Couchbase C++ SDK headers installed by Homebrew as a local repository.
+new_local_repository(
+    name = "couchbase_cxx_client",
+    path = "/opt/homebrew/include",
+    build_file_content = """
+cc_library(
+    name = "couchbase",
+    hdrs = glob(["couchbase/**"]),
+    includes = ["."],
+    visibility = ["//visibility:public"],
+)
+""",
+)

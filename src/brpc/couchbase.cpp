@@ -67,7 +67,7 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseGet(
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
     // Return an error pair indicating failure
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
   }
   try {
     // Use Couchbase C++ SDK to get document
@@ -78,17 +78,17 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseGet(
                              .get();
 
     if (err) {
-      return CouchbaseResponse(false, "", err);
+      return CouchbaseResponse(false, {}, err);
     }
 
     // Convert content to string using raw binary data
     auto content_json = result.content_as<tao::json::value>();
     std::string content = tao::json::to_string(content_json);
-    return CouchbaseResponse(true, content, {});
+    return CouchbaseResponse(true, {content}, {});
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during get operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 
@@ -98,7 +98,7 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseUpsert(
     const std::string& collection) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
     ;
   }
   try {
@@ -112,15 +112,15 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseUpsert(
                              .get();
 
     if (err) {
-      return CouchbaseResponse(false, "", err);
+      return CouchbaseResponse(false, {}, err);
     }
 
-    return CouchbaseResponse(true, "", {});
+        return CouchbaseResponse(true, {}, {});
 
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during upsert operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 
@@ -130,7 +130,7 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseAdd(
     const std::string& collection) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
   }
   try {
     auto content = tao::json::from_string(value);
@@ -143,15 +143,15 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseAdd(
                              .get();
 
     if (err) {
-      return CouchbaseResponse(false, "", err);
+      return CouchbaseResponse(false, {}, err);
     }
 
-    return CouchbaseResponse(true, "", {});
+        return CouchbaseResponse(true, {}, {});
 
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during add operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 
@@ -160,7 +160,7 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseRemove(
     const std::string& scope, const std::string& collection) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
     ;
   }
   try {
@@ -176,15 +176,15 @@ CouchbaseResponse CouchbaseWrapper::CouchbaseRemove(
           fmt::format("Remove failed for key '{}': {} (error code: {})", key,
                       err.message(), err.ec().value());
       cerr << RED_TEXT << error_info << RESET_TEXT;
-      return CouchbaseResponse(false, "", err);
+      return CouchbaseResponse(false, {}, err);
     }
 
-    return CouchbaseResponse(true, "", {});
+        return CouchbaseResponse(true, {}, {});
 
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during remove operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseResponse(false, "", {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 
@@ -198,11 +198,11 @@ vector<std::string> query_result_parser(couchbase::query_result& result) {
 }
 
 // query operation at cluster level with query options
-CouchbaseQueryResponse CouchbaseWrapper::Query(
+CouchbaseResponse CouchbaseWrapper::Query(
     std::string statement, couchbase::query_options& q_opts) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
   try {
     // Use Couchbase C++ SDK to execute N1QL query
@@ -212,22 +212,22 @@ CouchbaseQueryResponse CouchbaseWrapper::Query(
       std::string error_info = fmt::format("Query failed: {} (error code: {})",
                                            err.message(), err.ec().value());
       cerr << RED_TEXT << error_info << RESET_TEXT;
-      return CouchbaseQueryResponse(false, {}, err);
+      return CouchbaseResponse(false, {}, err);
     } else {
-      return CouchbaseQueryResponse(true, query_result_parser(result), {});
+      return CouchbaseResponse(true, query_result_parser(result), {});
     }
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during query operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 
 // Query operation at cluster level without query options
-CouchbaseQueryResponse CouchbaseWrapper::Query(std::string statement) {
+CouchbaseResponse CouchbaseWrapper::Query(std::string statement) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
   try {
     // Use Couchbase C++ SDK to execute N1QL query
@@ -237,24 +237,24 @@ CouchbaseQueryResponse CouchbaseWrapper::Query(std::string statement) {
       std::string error_info = fmt::format("Query failed: {} (error code: {})",
                                            err.message(), err.ec().value());
       cerr << RED_TEXT << error_info << RESET_TEXT;
-      return CouchbaseQueryResponse(false, {}, err);
+      return CouchbaseResponse(false, {}, err);
     } else {
-      return CouchbaseQueryResponse(true, query_result_parser(result), {});
+      return CouchbaseResponse(true, query_result_parser(result), {});
     }
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during query operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 
 // Query operation at scope level without query options
-CouchbaseQueryResponse CouchbaseWrapper::Query(std::string statement,
+CouchbaseResponse CouchbaseWrapper::Query(std::string statement,
                                                const std::string& bucket_name,
                                                const std::string& scope_name) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
   // get the desired scope of the bucket
   auto scope = g_cluster->bucket(bucket_name).scope(scope_name);
@@ -265,24 +265,24 @@ CouchbaseQueryResponse CouchbaseWrapper::Query(std::string statement,
     auto [err, result] = scope.query(statement, {}).get();
 
     if (err) {
-      return CouchbaseQueryResponse(false, {}, err);
+      return CouchbaseResponse(false, {}, err);
     } else {
-      return CouchbaseQueryResponse(true, query_result_parser(result), {});
+      return CouchbaseResponse(true, query_result_parser(result), {});
     }
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during query operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 
 // Query operation at scope level with query options
-CouchbaseQueryResponse CouchbaseWrapper::Query(
+CouchbaseResponse CouchbaseWrapper::Query(
     std::string statement, const std::string& bucket_name,
     const std::string& scope_name, couchbase::query_options& q_opts) {
   if (!g_initialized) {
     cerr << RED_TEXT << "Couchbase not initialized" << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
   // get the desired scope of the bucket
   auto scope = g_cluster->bucket(bucket_name).scope(scope_name);
@@ -295,14 +295,14 @@ CouchbaseQueryResponse CouchbaseWrapper::Query(
       std::string error_info = fmt::format("Query failed: {} (error code: {})",
                                            err.message(), err.ec().value());
       cerr << RED_TEXT << error_info << RESET_TEXT;
-      return CouchbaseQueryResponse(false, {}, err);
+      return CouchbaseResponse(false, {}, err);
     } else {
-      return CouchbaseQueryResponse(true, query_result_parser(result), {});
+      return CouchbaseResponse(true, query_result_parser(result), {});
     }
   } catch (const std::exception& ex) {
     cerr << RED_TEXT << "Exception during query operation: " << ex.what()
          << RESET_TEXT;
-    return CouchbaseQueryResponse(false, {}, {});
+    return CouchbaseResponse(false, {}, {});
   }
 }
 

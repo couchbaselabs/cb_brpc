@@ -51,27 +51,31 @@ void *threaded_example(void *arg) {
   std::cout << "\nAdding user data (insert only)..." << std::endl;
   std::string user_data =
       R"({"name": "John Doe", "age": 30, "email": "john@example.com"})";
-  auto add_response =
-      couchbase_client->CouchbaseAdd("user::john_doe", user_data, bucket_name);
+  auto add_response = couchbase_client->CouchbaseAdd("user::john_doe", user_data, bucket_name);
   if (add_response.success) {
     std::cout << "User data added successfully" << std::endl;
   } else {
     if (add_response.err.ec() == couchbase::errc::key_value::document_exists) {
       std::cerr << "Document already exists" << std::endl;
     }
+    if (!add_response.data.empty()) {
+      std::cerr << "Response data: " << add_response.data[0] << std::endl;
+    }
   }
 
   // Example 2: Try to add the same document again (should fail)
   std::cout << "\nTrying to add the same user data again (should fail)..."
             << std::endl;
-  add_response =
-      couchbase_client->CouchbaseAdd("user::john_doe", user_data, bucket_name);
+  add_response = couchbase_client->CouchbaseAdd("user::john_doe", user_data, bucket_name);
   if (add_response.success) {
     std::cout << "User data added successfully (unexpected)" << std::endl;
   } else {
     std::cout << "Add operation failed as expected" << std::endl;
     if (add_response.err.ec() == couchbase::errc::key_value::document_exists) {
       std::cerr << "Document already exists" << std::endl;
+    }
+    if (!add_response.data.empty()) {
+      std::cerr << "Response data: " << add_response.data[0] << std::endl;
     }
   }
 
@@ -85,19 +89,26 @@ void *threaded_example(void *arg) {
     std::cout << "User data updated successfully with Upsert" << std::endl;
   } else {
     std::cerr << "Failed to update user data" << std::endl;
+    if (!upsert_response.data.empty()) {
+      std::cerr << "Response data: " << upsert_response.data[0] << std::endl;
+    }
   }
 
   // Example 4: Retrieve the updated data
   std::cout << "\nRetrieving updated user data..." << std::endl;
-  auto get_response =
-      couchbase_client->CouchbaseGet("user::john_doe", bucket_name);
+  auto get_response = couchbase_client->CouchbaseGet("user::john_doe", bucket_name);
   if (get_response.success) {
-    std::cout << "Retrieved updated user data: " << get_response.data
-              << std::endl;
+    std::cout << "Retrieved updated user data: ";
+    if (!get_response.data.empty()) {
+      std::cout << get_response.data[0];
+    }
+    std::cout << std::endl;
   } else {
-    if (get_response.err.ec() ==
-        couchbase::errc::key_value::document_not_found) {
+    if (get_response.err.ec() == couchbase::errc::key_value::document_not_found) {
       std::cerr << "Document not found for get operation" << std::endl;
+    }
+    if (!get_response.data.empty()) {
+      std::cerr << "Response data: " << get_response.data[0] << std::endl;
     }
   }
 
@@ -106,32 +117,36 @@ void *threaded_example(void *arg) {
   for (int i = 1; i <= 3; i++) {
     std::string key = "item::" + std::to_string(i);
     std::string value = R"({"item_id": )" + std::to_string(i) + "}";
-    auto add_response_multiple =
-        couchbase_client->CouchbaseAdd(key, value, bucket_name);
+    auto add_response_multiple = couchbase_client->CouchbaseAdd(key, value, bucket_name);
     if (add_response_multiple.success) {
       std::cout << "Added " << key << " using Add operation" << std::endl;
     } else {
-      auto upsert_response_multiple =
-          couchbase_client->CouchbaseUpsert(key, value, bucket_name);
+      if (!add_response_multiple.data.empty()) {
+        std::cerr << "Response data: " << add_response_multiple.data[0] << std::endl;
+      }
+      auto upsert_response_multiple = couchbase_client->CouchbaseUpsert(key, value, bucket_name);
       if (upsert_response_multiple.success) {
-        std::cout << "Updated " << key << " using Upsert operation"
-                  << std::endl;
+        std::cout << "Updated " << key << " using Upsert operation" << std::endl;
       } else {
         std::cerr << "Failed to store " << key << std::endl;
+        if (!upsert_response_multiple.data.empty()) {
+          std::cerr << "Upsert response data: " << upsert_response_multiple.data[0] << std::endl;
+        }
       }
     }
   }
 
   // Example 6: Remove a document
   std::cout << "\nRemoving document..." << std::endl;
-  auto remove_response =
-      couchbase_client->CouchbaseRemove("item::1", bucket_name);
+  auto remove_response = couchbase_client->CouchbaseRemove("item::1", bucket_name);
   if (remove_response.success) {
     std::cout << "Document removed successfully" << std::endl;
   } else {
-    if (remove_response.err.ec() ==
-        couchbase::errc::key_value::document_not_found) {
+    if (remove_response.err.ec() == couchbase::errc::key_value::document_not_found) {
       std::cerr << "Document not found for removal" << std::endl;
+    }
+    if (!remove_response.data.empty()) {
+      std::cerr << "Response data: " << remove_response.data[0] << std::endl;
     }
   }
 

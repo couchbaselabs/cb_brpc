@@ -62,8 +62,8 @@ ifeq ($(SYSTEM),Darwin)
     # *.a must be explicitly specified in clang
     STATIC_LINKINGS += $(BRPC_PATH)/output/lib/libbrpc.a
  endif
-    LINK_OPTIONS_SO = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lfmt
-    LINK_OPTIONS = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lfmt
+	LINK_OPTIONS_SO = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lcouchbase_cxx_client -lfmt
+	LINK_OPTIONS = $^ $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lcouchbase_cxx_client -lfmt
 else ifeq ($(SYSTEM),Linux)
     STATIC_LINKINGS += -lbrpc
     LINK_OPTIONS_SO = -Xlinker "-(" $^ -Xlinker "-)" $(STATIC_LINKINGS) $(DYNAMIC_LINKINGS) -lcouchbase_cxx_client -lfmt

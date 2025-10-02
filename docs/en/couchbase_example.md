@@ -18,7 +18,7 @@ The core pieces are:
 Design goals:
 * **SSL Support**: Built-in SSL/TLS support for secure connections to Couchbase Capella.
 * **Per-instance Authentication**: Each `CouchbaseOperations` object maintains its own authenticated session.
-* **Collection Support**: Native support for collection-scoped operations.
+* **Collection Support**: Native support for collection-scoped operations with efficient metadata caching.
 * Keep wire structs identical to the binary protocol (24‑byte header, network order numeric fields).
 * Future extensions for advanced features.
 
@@ -27,6 +27,7 @@ Design goals:
 
 | Category | Supported Operations | Notes |
 |----------|----------------------|-------|
+| **C++11 Compatibility** | Full C++11 standard support | Custom reader-writer lock, no external dependencies |
 | **High-Level API** | `CouchbaseOperations` class | **Recommended**: Simple methods returning `Result` structs |
 | **SSL/TLS Support** | Built-in SSL encryption | **Required** for Couchbase Capella, optional for local clusters |
 | Authentication | SASL `PLAIN` with SSL | Each `CouchbaseOperations` instance requires authentication |
@@ -570,6 +571,8 @@ if (get_result.success) {
 - **Reuse `CouchbaseOperations` instances** - they maintain persistent connections
 - **Use pipeline operations for bulk operations** 
 - **Pipeline operations preserve order** - results correspond to request order
+- **Collection operations benefit from concurrent metadata access** - multiple threads can read collection manifests simultaneously
+- **C++11 compatible** - no need for newer C++ standards or external dependencies
 
 #### Code Example Template
 ```cpp
@@ -612,7 +615,7 @@ This implementation provides both high-level and low-level APIs for Couchbase KV
 - **High-level API**: Recommended for most applications - simple, with built-in SSL support
 - **SSL Support**: Essential for Couchbase Capella and secure local deployments
 - **Thread Safety**: Each thread should create its own authenticated `CouchbaseOperations` instance
-- **Collection Support**: Native support for collection-scoped operations
+- **Collection Support**: Native support for collection-scoped operations with efficient concurrent metadata caching
 
 
 ---

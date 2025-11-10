@@ -49,9 +49,6 @@ TEST_F(CouchbaseUnitTest, RequestBuilders) {
 
 TEST_F(CouchbaseUnitTest, ResultStruct) {
   brpc::CouchbaseOperations::Result result;
-  EXPECT_FALSE(result.success);
-  EXPECT_TRUE(result.error_message.empty());
-  EXPECT_EQ(0, result.status_code);
   
   result.success = true;
   result.error_message = "Test";
@@ -60,7 +57,18 @@ TEST_F(CouchbaseUnitTest, ResultStruct) {
   
   EXPECT_TRUE(result.success);
   EXPECT_EQ("Test", result.error_message);
+  EXPECT_EQ(R"({"test": "data"})", result.value);
   EXPECT_EQ(0x01, result.status_code);
+  
+  result.success = false;
+  result.error_message = "";
+  result.value = "";
+  result.status_code = 0x00;
+  
+  EXPECT_FALSE(result.success);
+  EXPECT_TRUE(result.error_message.empty());
+  EXPECT_TRUE(result.value.empty());
+  EXPECT_EQ(0x00, result.status_code);
 }
 
 TEST_F(CouchbaseUnitTest, EdgeCases) {
